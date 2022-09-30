@@ -17,12 +17,12 @@
 *****************************************************************************************
 '''
 
-# Team ID:			[ Team-ID ]
-# Author List:		[ Names of team members worked on this file separated by Comma: Name1, Name2, ... ]
+# Team ID:			[ HB#1284 ]
+# Author List:		[ Debrup ]
 # Filename:			task_0.py
 # Functions:
-# 					[ Comma separated list of functions in this file ]
-# Nodes:		    Add your publishing and subscribing node
+# 					[ pose_callback(), main(), move_straight(), rotate(), stop() ]
+# Nodes:	        task_0
 
 # IMPORT MODULES
 import sys
@@ -31,7 +31,7 @@ import rospy
 from geometry_msgs.msg import Twist
 from turtlesim.msg import Pose
 
-# necessary variaables
+# necessary variables
 x=0
 y=0
 x_init=5.44

@@ -3,7 +3,7 @@
 <launch>
 	<arg name="record" default="false"/>
 	<arg name="duration" default="30"/>
-	<arg name="rec_name" default="HB_task0.bag"/>
+	<arg name="rec_name" default="HB_1284.bag"/>
     
 	
 	<!-- Recording section or Rosbag node --> 
@@ -18,6 +18,6 @@
 	<!-- Turtlesim node -->
 	<node pkg="turtlesim" type="turtlesim_node" name="turtlesim_node"/>
 
-	<node pkg="eyrc-2022_holabot" type="task_0.py" name="node_myMsg_listener" output="screen"/>
+	<node pkg="eyrc-2022_holabot" type="task_0.py" name="task_0" output="screen"/>
 </launch>
 <!-- ======================================================================================= -->

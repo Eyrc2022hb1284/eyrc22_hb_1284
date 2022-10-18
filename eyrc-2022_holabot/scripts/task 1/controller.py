@@ -16,19 +16,20 @@ class goToPose:
         self.theta=0
 
         self.linear_thresh=0.01
-        self.ang_thresh=0.04
+        self.ang_thresh=0.075
 
         # goals
-        self.x_goals=[1, -1, -1, 1, 0]
-        self.y_goals=[1, 1, -1, -1, 0]
-        self.theta_goals=[math.pi/4, 3*math.pi/4, -3*math.pi/4, -math.pi/4, 0]
+        self.x_goals=[]
+        self.prev=[]
+        self.y_goals=[]
+        self.theta_goals=[]
 
+        self.test_sub=rospy.Subscriber('task1_goals', PoseArray, self.task1_goals_Cb)
         self.odom_sub=rospy.Subscriber('/odom', Odometry, self.odom_callback)
-        # self.test_sub=rospy.Subscriber('task1_goals', PoseArray, self.task1_goals_Cb)
         self.cmd_pub=rospy.Publisher('/cmd_vel', Twist, queue_size=10)
 
         # pid params
-        self.params_linear={'Kp':2, 'Ki':0, 'Kd':0}
+        self.params_linear={'Kp':4, 'Ki':0, 'Kd':0}
         self.params_ang={'Kp':0.5, 'Ki':0, 'Kd':0}
 
         self.intg=0
@@ -37,35 +38,34 @@ class goToPose:
         self.msg=Twist()
         self.rate=rospy.Rate(10)
 
-        for i in range(len(self.x_goals)):
-            goal_x=self.x_goals[i]
-            goal_y=self.y_goals[i]
-            goal_theta=self.theta_goals[i]
+        while not rospy.is_shutdown():
+            if self.prev==self.x_goals: pass
 
-            while(True):
-                angle_error=goal_theta-self.theta
+            for i in range(len(self.x_goals)):
+                goal_x=self.x_goals[i]
+                goal_y=self.y_goals[i]
+                goal_theta=self.theta_goals[i]
 
-                error_x=(goal_x-self.x)*math.cos(self.theta)+(goal_y-self.y)*math.sin(self.theta)
-                error_y=-(goal_x-self.x)*math.sin(self.theta)+(goal_y-self.y)*math.cos(self.theta)
+                while True:
+                    angle_error=goal_theta-self.theta
+                    error_x=(goal_x-self.x)*math.cos(self.theta)+(goal_y-self.y)*math.sin(self.theta)
+                    error_y=-(goal_x-self.x)*math.sin(self.theta)+(goal_y-self.y)*math.cos(self.theta)
 
-                v_x, v_y=self.getLinearVel(error_x,  error_y, self.params_linear)
-                ang_vel=self.getAngVel(angle_error, self.params_ang)
+                    v_x, v_y=self.getLinearVel(error_x,  error_y, self.params_linear)
+                    ang_vel=self.getAngVel(angle_error, self.params_ang)
 
-                self.msg.linear.x=v_x
-                self.msg.linear.y=v_y
-                self.msg.angular.z=ang_vel
+                    self.msg.linear.x=v_x
+                    self.msg.linear.y=v_y
+                    self.msg.angular.z=ang_vel
 
-                self.cmd_pub.publish(self.msg)
-                self.rate.sleep()
+                    self.cmd_pub.publish(self.msg)
 
-                # if bot reached goal, move to next goal
-                if abs(angle_error)<=self.ang_thresh and abs(error_x)<=self.linear_thresh and abs(error_y)<=self.linear_thresh :
-                    self.stop(x=True, y=True, z=True)
-                    rospy.sleep(1)
-                    break
-
-        rospy.loginfo("Task finished")
-        rospy.signal_shutdown("Task finished")
+                    if abs(angle_error)<=self.ang_thresh and abs(error_x)<=self.linear_thresh and abs(error_y)<=self.linear_thresh:
+                        break
+                    self.rate.sleep()
+                    
+                # self.stop(x=True, y=True, z=True)
+                rospy.sleep(1)
 
     def odom_callback(self, data):
         x  = data.pose.pose.orientation.x
@@ -78,6 +78,7 @@ class goToPose:
         _, _, self.theta = euler_from_quaternion([x,y,z,w]) #real time orientation of bot
 
     def task1_goals_Cb(self, msg):
+        self.prev=self.x_goals
         self.x_goals.clear()
         self.y_goals.clear()
         self.theta_goals.clear()
@@ -110,16 +111,11 @@ class goToPose:
             else:
                 ang_vel = self.pid(error, const)
 
-            if ang_vel<0: ang_vel=-2
-            else: ang_vel=2
-
-            print("Aligning: ", ang_vel)
+            if ang_vel<0: ang_vel=-4
+            else: ang_vel=4
 
         else:
             self.stop(z=True)
-            print("Stopped")
-
-        print("Orientation: ", self.theta)
 
         return ang_vel
 
@@ -130,10 +126,8 @@ class goToPose:
         if abs(error_x)>self.linear_thresh or abs(error_y)>self.linear_thresh:
             v_x=self.pid(error_x, const)
             v_y=self.pid(error_y, const)
-            print("vel_x: {} vel_y: {}".format(v_x, v_y))
         else:
             self.stop(x=True, y=True)
-            print("Stopped")
 
         return v_x, v_y
 

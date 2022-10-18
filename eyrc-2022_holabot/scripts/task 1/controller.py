@@ -16,7 +16,7 @@ class goToPose:
         self.theta=0
 
         self.linear_thresh=0.01
-        self.ang_thresh=0.075
+        self.ang_thresh=0.02
 
         # goals
         self.x_goals=[]
@@ -29,7 +29,7 @@ class goToPose:
         self.cmd_pub=rospy.Publisher('/cmd_vel', Twist, queue_size=10)
 
         # pid params
-        self.params_linear={'Kp':4, 'Ki':0, 'Kd':0}
+        self.params_linear={'Kp':2.2, 'Ki':0, 'Kd':0}
         self.params_ang={'Kp':0.5, 'Ki':0, 'Kd':0}
 
         self.intg=0
@@ -111,8 +111,8 @@ class goToPose:
             else:
                 ang_vel = self.pid(error, const)
 
-            if ang_vel<0: ang_vel=-4
-            else: ang_vel=4
+            if ang_vel<0: ang_vel=-2.2
+            else: ang_vel=2.2
 
         else:
             self.stop(z=True)

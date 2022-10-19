@@ -8,13 +8,15 @@ from tf.transformations import euler_from_quaternion
 
 class goToPose:
     def __init__(self):
-
+        # initalise node
         rospy.init_node('go_to_pose')
 
+        # pose params
         self.x=0
         self.y=0
         self.theta=0
 
+        # threshold params
         self.linear_thresh=0.01
         self.ang_thresh=0.02
 
@@ -24,6 +26,7 @@ class goToPose:
         self.y_goals=[]
         self.theta_goals=[]
 
+        # subscriber/publisher
         self.test_sub=rospy.Subscriber('task1_goals', PoseArray, self.task1_goals_Cb)
         self.odom_sub=rospy.Subscriber('/odom', Odometry, self.odom_callback)
         self.cmd_pub=rospy.Publisher('/cmd_vel', Twist, queue_size=10)
@@ -31,13 +34,14 @@ class goToPose:
         # pid params
         self.params_linear={'Kp':2.2, 'Ki':0, 'Kd':0}
         self.params_ang={'Kp':0.5, 'Ki':0, 'Kd':0}
-
         self.intg=0
         self.last_error=0
 
+        # ROS msgs
         self.msg=Twist()
         self.rate=rospy.Rate(10)
 
+        # control loop
         while not rospy.is_shutdown():
             if self.prev==self.x_goals: pass
 
@@ -47,24 +51,27 @@ class goToPose:
                 goal_theta=self.theta_goals[i]
 
                 while True:
+                    # error calculation
                     angle_error=goal_theta-self.theta
                     error_x=(goal_x-self.x)*math.cos(self.theta)+(goal_y-self.y)*math.sin(self.theta)
                     error_y=-(goal_x-self.x)*math.sin(self.theta)+(goal_y-self.y)*math.cos(self.theta)
 
+                    # velocity calculation
                     v_x, v_y=self.getLinearVel(error_x,  error_y, self.params_linear)
                     ang_vel=self.getAngVel(angle_error, self.params_ang)
 
                     self.msg.linear.x=v_x
                     self.msg.linear.y=v_y
                     self.msg.angular.z=ang_vel
-
+                    
+                    # publish vel
                     self.cmd_pub.publish(self.msg)
 
+                    # move to next pose when reached target pose
                     if abs(angle_error)<=self.ang_thresh and abs(error_x)<=self.linear_thresh and abs(error_y)<=self.linear_thresh:
                         break
                     self.rate.sleep()
                     
-                # self.stop(x=True, y=True, z=True)
                 rospy.sleep(1)
 
     def odom_callback(self, data):
@@ -100,6 +107,7 @@ class goToPose:
         self.last_error = error
         return balance
 
+    # angular pid function
     def getAngVel(self, error, const):
         ang_vel=0
 
@@ -119,6 +127,7 @@ class goToPose:
 
         return ang_vel
 
+    # linear pid function
     def getLinearVel(self, error_x,  error_y, const, x=True):
         v_x=0
         v_y=0
@@ -131,8 +140,8 @@ class goToPose:
 
         return v_x, v_y
 
+    # bot halt function
     def stop(self, x=False, y=False, z=False):
-        #Function to halt the bot wherever its called
         if x: self.msg.linear.x = 0
         if y: self.msg.linear.y=0
         if z: self.msg.angular.z = 0

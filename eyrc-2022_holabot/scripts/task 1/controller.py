@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 
+'''
+Author: [Debrup, Sachin]
+'''
+
 import rospy
 from geometry_msgs.msg import Twist, PoseArray
 from nav_msgs.msg import Odometry
@@ -17,8 +21,8 @@ class goToPose:
         self.theta=0
 
         # threshold params
-        self.linear_thresh=0.01
-        self.ang_thresh=0.02
+        self.linear_thresh=0.04
+        self.ang_thresh=float(math.pi)/181
 
         # goals
         self.x_goals=[]
@@ -26,13 +30,15 @@ class goToPose:
         self.y_goals=[]
         self.theta_goals=[]
 
+        self.movement_count=0
+
         # subscriber/publisher
         self.test_sub=rospy.Subscriber('task1_goals', PoseArray, self.task1_goals_Cb)
         self.odom_sub=rospy.Subscriber('/odom', Odometry, self.odom_callback)
         self.cmd_pub=rospy.Publisher('/cmd_vel', Twist, queue_size=10)
 
         # pid params
-        self.params_linear={'Kp':2.2, 'Ki':0, 'Kd':0}
+        self.params_linear={'Kp':1, 'Ki':0, 'Kd':0}
         self.params_ang={'Kp':0.5, 'Ki':0, 'Kd':0}
         self.intg=0
         self.last_error=0
@@ -43,8 +49,8 @@ class goToPose:
 
         # control loop
         while not rospy.is_shutdown():
-            if self.prev==self.x_goals: pass
-
+            if self.prev==self.x_goals: continue
+            
             for i in range(len(self.x_goals)):
                 goal_x=self.x_goals[i]
                 goal_y=self.y_goals[i]
@@ -70,9 +76,10 @@ class goToPose:
                     # move to next pose when reached target pose
                     if abs(angle_error)<=self.ang_thresh and abs(error_x)<=self.linear_thresh and abs(error_y)<=self.linear_thresh:
                         break
-                    self.rate.sleep()
                     
                 rospy.sleep(1)
+
+            self.prev=self.x_goals
 
     def odom_callback(self, data):
         x  = data.pose.pose.orientation.x
@@ -85,7 +92,6 @@ class goToPose:
         _, _, self.theta = euler_from_quaternion([x,y,z,w]) #real time orientation of bot
 
     def task1_goals_Cb(self, msg):
-        self.prev=self.x_goals
         self.x_goals.clear()
         self.y_goals.clear()
         self.theta_goals.clear()
@@ -119,8 +125,8 @@ class goToPose:
             else:
                 ang_vel = self.pid(error, const)
 
-            if ang_vel<0: ang_vel=-2.2
-            else: ang_vel=2.2
+            if ang_vel<0: ang_vel=-1
+            else: ang_vel=1
 
         else:
             self.stop(z=True)
@@ -147,7 +153,6 @@ class goToPose:
         if z: self.msg.angular.z = 0
 
         self.cmd_pub.publish(self.msg)
-
 
 if __name__=='__main__':
     gt=goToPose()

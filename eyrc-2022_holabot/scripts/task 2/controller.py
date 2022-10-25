@@ -189,18 +189,37 @@ def main():
 	right_wheel_pub = rospy.Publisher('/right_wheel_force', Wrench, queue_size=10)
 	front_wheel_pub = rospy.Publisher('/front_wheel_force', Wrench, queue_size=10)
 	left_wheel_pub = rospy.Publisher('/left_wheel_force', Wrench, queue_size=10)
+
+
+
 	pose_msg = Wrench()
-	pose_msg.force.x = 0
-	pose_msg = geometry_msgs.msg.Wrench(force = geometry_msgs.msg.Vector3( x = 0, \
+	pose_msg1 = Wrench()
+	pose_msg2 = Wrench()
+
+
+	pose_msg = geometry_msgs.msg.Wrench(force = geometry_msgs.msg.Vector3( x = -0.9099999999999999, \
                 y = 0, z = 0), \
-                torque = geometry_msgs.msg.Vector3(x = 0, y = 0, z = 100))
-	# pose_msg = pose_msg.force.z=10
-	# pose_msg.force.x = 0
-	# pose_msg.force.y = 0
-	# pose_msg.torque.z = 10
+                torque = geometry_msgs.msg.Vector3(x = 0, y = 0, z = 0))
+
+	rospy.sleep(1)
+	
+	pose_msg2 = geometry_msgs.msg.Wrench(force = geometry_msgs.msg.Vector3( x = 0, \
+                y = 0.24999999999999994, z = 0), \
+                torque = geometry_msgs.msg.Vector3(x = 0, y = 0, z = 0))
+
+	rospy.sleep(1)
+
+	pose_msg2 = geometry_msgs.msg.Wrench(force = geometry_msgs.msg.Vector3( x = 0, \
+                y = 0, z = 0), \
+                torque = geometry_msgs.msg.Vector3(x = 0, y = 0, z = 0.67))
+				
+	rospy.sleep(1)
+
 	right_wheel_pub.publish(pose_msg)
-	# left_wheel_pub.publish()
-	# front_wheel_pub.publish()
+	left_wheel_pub.publish(pose_msg1)
+	front_wheel_pub.publish(pose_msg2)
+
+	print("mkc")
 	rospy.Subscriber('/detected_aruco',Pose2D,aruco_feedback_Cb)
 	# rospy.Subscriber('task2_goals',PoseArray,task2_goals_Cb)
 	

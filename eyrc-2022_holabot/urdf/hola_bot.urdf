@@ -6,11 +6,11 @@
     For more information, please see http://wiki.ros.org/sw_urdf_exporter 
 
     This version of the URDF is made after a lot of simplification by the e-Yantra Team (Arjun Sadananda) -->
-
 <robot
   name="hola_bot">
 
   <!-- Chassis -->
+
   <link
     name="base_link">
     <inertial>
@@ -18,14 +18,14 @@
         xyz="0 0 0"
         rpy="0 0 0" />
       <mass
-        value="0.49" />
+        value="1" />
       <inertia
-        ixx="0.00199"
+        ixx="0.005627"
         ixy="0"
         ixz="0"
-        iyy="0.00199"
+        iyy="0.005627"
         iyz="0"
-        izz="0.00395" />
+        izz="0.01125" />
     </inertial>
     <visual>
       <origin
@@ -33,7 +33,7 @@
         rpy="0 0 1.57" />
       <geometry>
         <mesh
-          filename="package://eyrc-2022_holabot/meshes/base_link.STL" />
+          filename="package://eyrc-2022_holabot/meshes/base_link.obj" />
       </geometry>
     </visual>
     <collision>
@@ -46,7 +46,9 @@
     </collision>
   </link>
 
+
   <!-- Front Wheel -->
+
   <!-- Front Wheel Link -->
   <link
     name="front_wheel">
@@ -55,14 +57,14 @@
         xyz="0 0 0"
         rpy="0 0 0" />
       <mass
-        value="0.062" />
+        value="0.060" />
       <inertia
-        ixx="0.000285"
+        ixx="0.00001352"
         ixy="0"
         ixz="0"
-        iyy="0.0005198"
+        iyy="0.000027"
         iyz="0"
-        izz="0.0002851" />
+        izz="0.00001352" />
     </inertial>
     <visual>
       <origin
@@ -84,11 +86,12 @@
   </link>
 
   <!-- Front Wheel Joint -->
+
   <joint
     name="front_joint"
-    type="continuous">
+    type="revolute">
     <origin
-      xyz="0 0.17483 -0.0335"
+      xyz="0 0.17483 0"
       rpy="0 0 0" />
     <parent
       link="base_link" />
@@ -100,8 +103,9 @@
       effort="5"
       velocity="5" />
   </joint>
-
+  
   <!-- Left Wheel -->
+
   <!-- Left Wheel Link -->
   <link
     name="left_wheel">
@@ -110,14 +114,14 @@
         xyz="0 0 0"
         rpy="0 0 0" />
       <mass
-        value="0.062" />
+        value="0.060" />
       <inertia
-        ixx="0.000285"
+        ixx="0.00001352"
         ixy="0"
         ixz="0"
-        iyy="0.0005198"
+        iyy="0.000027"
         iyz="0"
-        izz="0.0002851" />
+        izz="0.00001352" />
     </inertial>
     <visual>
       <origin
@@ -127,10 +131,15 @@
         <mesh
           filename="package://eyrc-2022_holabot/meshes/wheel.STL" />
       </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.4 0.4 0.4 1" />
+      </material>
     </visual>
     <collision>
       <origin
-        xyz="0 -.01 0"
+        xyz="0 -0.01 0"
         rpy="1.57 0 0" />
       <geometry>
         <cylinder radius=".03" length="0.02"/>
@@ -141,20 +150,21 @@
   <!-- Left Wheel Joint -->
   <joint
     name="left_joint"
-    type="continuous">
+    type="revolute">
     <origin
-      xyz="-0.15154 -0.087275 -0.0335"
-      rpy="0 0 -1.04688" />
+      xyz="-0.15154 -0.087275 0"
+      rpy="0 0 2.094" />
     <parent
       link="base_link" />
     <child
       link="left_wheel" />
     <axis
-      xyz="0 -1 0" />
+      xyz="0 1 0" />
     <limit
       effort="5"
       velocity="5" />
   </joint>
+
 
   <!-- Right Wheel -->
   <!-- Right Wheel Link -->
@@ -165,14 +175,14 @@
         xyz="0 0 0"
         rpy="0 0 0" />
       <mass
-        value="0.062" />
+        value="0.060" />
       <inertia
-        ixx="0.000285"
+        ixx="0.00001352"
         ixy="0"
         ixz="0"
-        iyy="0.0005198"
+        iyy="0.000027"
         iyz="0"
-        izz="0.0002851" />
+        izz="0.00001352" />
     </inertial>
     <visual>
       <origin
@@ -182,10 +192,15 @@
         <mesh
           filename="package://eyrc-2022_holabot/meshes/wheel.STL" />
       </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.4 0.4 0.4 1" />
+      </material>
     </visual>
     <collision>
       <origin
-        xyz="0 -.01 0"
+        xyz="0 -0.01 0"
         rpy="1.57 0 0" />
       <geometry>
         <cylinder radius=".03" length="0.02"/>
@@ -194,32 +209,51 @@
   </link>
 
   <!-- Right Wheel Joint -->
+
   <joint
     name="right_joint"
-    type="continuous">
+    type="revolute">
     <origin
-      xyz="0.15154 -0.087275 -0.0335"
-      rpy="0 0 1.04688" />
+      xyz="0.15154 -0.087275 0"
+      rpy="0 0 -2.094" />
     <parent
       link="base_link" />
     <child
       link="right_wheel" />
     <axis
-      xyz="0 -1 0" />
+      xyz="0 1 0" />
     <limit
       effort="5"
       velocity="5" />
   </joint>
 
-  <!-- planar move/holonmic drive -->
-  <gazebo>
+
+ <gazebo>
     <plugin name="object_controller" filename="libgazebo_ros_planar_move.so">
-      <commandTopic>cmd_vel</commandTopic>
-      <odometryTopic>odom</odometryTopic>
-      <odometryFrame>odom</odometryFrame>
-      <odometryRate>20.0</odometryRate>
-      <robotBaseFrame>base_link</robotBaseFrame>
+    </plugin>
+  </gazebo>   
+
+ <gazebo>
+    <plugin name="right_force" filename="libcustom_force.so" >
+      <bodyName>right_wheel</bodyName>
+      <topicName>right_wheel_force</topicName>
+    </plugin>
+  </gazebo>
+
+  <gazebo>
+    <plugin name="left_force" filename="libcustom_force.so" >
+      <bodyName>left_wheel</bodyName>
+      <topicName>left_wheel_force</topicName>
+    </plugin>
+  </gazebo>
+
+  <gazebo>
+    <plugin name="front_force" filename="libcustom_force.so" >
+      <bodyName>front_wheel</bodyName>
+      <topicName>front_wheel_force</topicName>
     </plugin>
   </gazebo>
   
 </robot>
+
+   

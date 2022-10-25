@@ -65,6 +65,7 @@ def signal_handler(sig, frame):
 	sys.exit(0)
 
 def cleanup():
+	pass
 	############ ADD YOUR CODE HERE ############
 
 	# INSTRUCTIONS & HELP : 
@@ -90,6 +91,7 @@ def task2_goals_Cb(msg):
 		theta_goals.append(theta_goal)
 
 def aruco_feedback_Cb(msg):
+	pass
 	############ ADD YOUR CODE HERE ############
 
 	# INSTRUCTIONS & HELP : 
@@ -100,6 +102,7 @@ def aruco_feedback_Cb(msg):
 
 
 def inverse_kinematics():
+	pass
 	############ ADD YOUR CODE HERE ############
 
 	# INSTRUCTIONS & HELP : 

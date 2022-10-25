@@ -65,16 +65,21 @@ def main():
         # draw semicircle
         if(stage==0):
             rotate(0.5, 0.5, theta, 3.14, twist_msg)
+            print("My turtleBot is: Moving in circle!!")
         # rotate turtlebot
         if(stage==1):
             rotate(0, 0.5, theta, -1.57, twist_msg)
+            print("My turtleBot is: Rotating!")
         # reach origin
         if stage==2:
             move_straight(y, y_init, twist_msg)
+            print("My turtleBot is: Moving Straight!!!")
         # stop
         if stage==3:
             rospy.signal_shutdown("Task 0 finished")
-        
+                    
+        print(theta)
+
         # publish velocity
         pub.publish(twist_msg)
         

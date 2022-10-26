@@ -19,6 +19,18 @@ class goToPose:
         self.y=0
         self.theta=0
 
+        self.vf=0
+        self.prev_vf=0
+
+        self.vl=0
+        self.prev_vl=0
+
+        self.vr=0
+        self.prev_vr=0
+
+        self.prev_time=rospy.get_time()
+
+
         # bot params
         self.d=0.1
         self.r=0.03
@@ -72,13 +84,29 @@ class goToPose:
                     v_x, v_y=self.getLinearVel(error_x,  error_y, self.params_linear)
                     ang_vel=self.getAngVel(angle_error, self.params_ang)
 
-                    v1, v2, v3=self.inverse_kinematics(v_x, v_y, ang_vel)
-                    
-                    print(v1, v2, v3)
+                    self.vf, self.vr, self.vl=self.inverse_kinematics(v_x, v_y, ang_vel)
 
-                    self.fw_msg.torque.z=v1
-                    self.rw_msg.torque.z=v2
-                    self.lw_msg.torque.z=v3
+                    curr_time=rospy.get_time()
+                    del_time=curr_time-self.prev_time
+                    self.prev_time=curr_time
+
+                    # print(del_time, self.vf, self.prev_vf)
+                    
+                    
+                    force_f=0.06*(self.vf-self.prev_vf)/(del_time+1e-9)
+                    force_r=0.06*(self.vr-self.prev_vr)/(del_time+1e-9)
+                    force_l=0.06*(self.vl-self.prev_vl)/(del_time+1e-9)
+
+                    self.prev_vf=self.vf
+                    self.prev_vl=self.vl
+                    self.prev_vr=self.vr
+
+                    self.fw_msg.force.x=force_f
+                    self.lw_msg.force.x=force_l
+                    self.rw_msg.force.x=force_r
+
+                    print(force_f, force_l, force_r)
+
                     
                     self.front_wheel_pub.publish(self.fw_msg)
                     self.right_wheel_pub.publish(self.rw_msg)

@@ -5,7 +5,7 @@ Author: [Debrup, Sachin]
 '''
 
 import rospy
-from geometry_msgs.msg import PoseArray, Pose2D, Wrench
+from geometry_msgs.msg import PoseArray, Pose2D, Wrench, Twist
 import math
 from tf.transformations import euler_from_quaternion
 
@@ -32,7 +32,7 @@ class goToPose:
 
 
         # bot params
-        self.d=0.1
+        self.d=0.17483
         self.r=0.03
 
         # threshold params
@@ -53,9 +53,10 @@ class goToPose:
         self.right_wheel_pub = rospy.Publisher('/right_wheel_force', Wrench, queue_size=10)
         self.front_wheel_pub = rospy.Publisher('/front_wheel_force', Wrench, queue_size=10)
         self.left_wheel_pub = rospy.Publisher('/left_wheel_force', Wrench, queue_size=10)
+        self.pub=rospy.Publisher('/cmd_vel', Twist, queue_size=10)
 
         # pid params
-        self.params_linear={'Kp':1, 'Ki':0, 'Kd':0}
+        self.params_linear={'Kp':0.02, 'Ki':0, 'Kd':0}
         self.params_ang={'Kp':0.5, 'Ki':0, 'Kd':0}
         self.intg=0
         self.last_error=0
@@ -64,6 +65,7 @@ class goToPose:
         self.rw_msg=Wrench()
         self.lw_msg=Wrench()
         self.fw_msg=Wrench()
+        self.msg=Twist()
 
         # control loop
         while not rospy.is_shutdown():
@@ -78,39 +80,47 @@ class goToPose:
                     # error calculation
                     angle_error=goal_theta-self.theta
                     error_x=(goal_x-self.x)*math.cos(self.theta)+(goal_y-self.y)*math.sin(self.theta)
-                    error_y=-(goal_x-self.x)*math.sin(self.theta)+(goal_y-self.y)*math.cos(self.theta)
+                    error_y=(goal_x-self.x)*math.sin(self.theta)-(goal_y-self.y)*math.cos(self.theta)
+
+                    print(error_x, error_y)
 
                     # velocity calculation
                     v_x, v_y=self.getLinearVel(error_x,  error_y, self.params_linear)
                     ang_vel=self.getAngVel(angle_error, self.params_ang)
 
-                    self.vf, self.vr, self.vl=self.inverse_kinematics(v_x, v_y, ang_vel)
+                    # self.msg.linear.x=v_x
+                    # self.msg.linear.y=v_y
+                    # self.msg.angular.z=ang_vel
 
-                    curr_time=rospy.get_time()
-                    del_time=curr_time-self.prev_time
-                    self.prev_time=curr_time
+                    self.fw_msg.force.x, self.rw_msg.force.x, self.lw_msg.force.x=self.inverse_kinematics(0, 0, ang_vel)
+                    self.fw_msg.force.y, self.rw_msg.force.y, self.lw_msg.force.y=self.inverse_kinematics(v_x, v_y, 0)                    
 
-                    # print(del_time, self.vf, self.prev_vf)
+                    # curr_time=rospy.get_time()
+                    # del_time=curr_time-self.prev_time
+                    # self.prev_time=curr_time
+
+                    # # print(del_time, self.vf, self.prev_vf)
                     
                     
-                    force_f=0.06*(self.vf-self.prev_vf)/(del_time+1e-9)
-                    force_r=0.06*(self.vr-self.prev_vr)/(del_time+1e-9)
-                    force_l=0.06*(self.vl-self.prev_vl)/(del_time+1e-9)
+                    # force_f=0.06*(self.vf-self.prev_vf)/(del_time+1e-9)
+                    # force_r=0.06*(self.vr-self.prev_vr)/(del_time+1e-9)
+                    # force_l=0.06*(self.vl-self.prev_vl)/(del_time+1e-9)
 
-                    self.prev_vf=self.vf
-                    self.prev_vl=self.vl
-                    self.prev_vr=self.vr
+                    # self.prev_vf=self.vf
+                    # self.prev_vl=self.vl
+                    # self.prev_vr=self.vr
 
-                    self.fw_msg.force.x=force_f
-                    self.lw_msg.force.x=force_l
-                    self.rw_msg.force.x=force_r
+                    # self.fw_msg.force.x=force_f
+                    # self.lw_msg.force.x=force_l
+                    # self.rw_msg.force.x=force_r
 
-                    print(force_f, force_l, force_r)
+                    # print(force_f, force_l, force_r)
 
                     
                     self.front_wheel_pub.publish(self.fw_msg)
                     self.right_wheel_pub.publish(self.rw_msg)
                     self.left_wheel_pub.publish(self.lw_msg)
+                    # self.pub.publish(self.msg)
 
                     self.rate.sleep()
 
@@ -191,13 +201,19 @@ class goToPose:
 
     # bot halt function
     def stop(self):
-        self.fw_msg.force.x=0
-        self.rw_msg.force.x=0
-        self.lw_msg.force.x=0
+        self.msg.linear.x = 0
+        self.msg.linear.y=0
+        self.msg.angular.z = 0
+
+        self.pub.publish(self.msg)
+    # def stop(self):
+    #     self.fw_msg.force.x=0
+    #     self.rw_msg.force.x=0
+    #     self.lw_msg.force.x=0
         
-        self.front_wheel_pub.publish(self.fw_msg)
-        self.right_wheel_pub.publish(self.rw_msg)
-        self.left_wheel_pub.publish(self.lw_msg)
+    #     self.front_wheel_pub.publish(self.fw_msg)
+    #     self.right_wheel_pub.publish(self.rw_msg)
+    #     self.left_wheel_pub.publish(self.lw_msg)
 
 if __name__=='__main__':
     gt=goToPose()

@@ -73,9 +73,9 @@ class ArucoFeedback:
 		return x, y, theta
 
 if __name__ == '__main__':
-    af=ArucoFeedback()
-    try:
-        if not rospy.is_shutdown():
-            rospy.spin()
-    except rospy.ROSInterruptException as e:
-        print(e)
+	af=ArucoFeedback()
+	try:
+		if not rospy.is_shutdown():
+			rospy.spin()
+	except rospy.ROSInterruptException as e:
+		print(e)

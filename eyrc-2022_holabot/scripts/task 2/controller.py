@@ -4,6 +4,7 @@
 Author: [Debrup, Sachin]
 '''
 
+from numpy import mat
 import rospy
 from geometry_msgs.msg import PoseArray, Pose2D, Wrench, Twist
 import math
@@ -40,14 +41,15 @@ class goToPose:
         self.ang_thresh=float(math.pi)/181
 
         # goals
-        self.x_goals=[50,350,50,250,250]
-        self.y_goals=[350,50,50,350,50]
-        self.theta_goals=[0, 0, 0, 0, 0]
+        self.x_goals=[]
+        self.y_goals=[]
+        self.theta_goals=[]
+        self.prev=[]
 
         self.rate=rospy.Rate(10)
 
         # subscriber/publisher
-        # self.test_sub=rospy.Subscriber('task2_goals', PoseArray, self.task2_goals_Cb)
+        self.test_sub=rospy.Subscriber('task2_goals', PoseArray, self.task2_goals_Cb)
         self.odom_sub=rospy.Subscriber('/detected_aruco', Pose2D, self.aruco_feedback_Cb)
         
         self.right_wheel_pub = rospy.Publisher('/right_wheel_force', Wrench, queue_size=10)
@@ -56,7 +58,7 @@ class goToPose:
         self.pub=rospy.Publisher('/cmd_vel', Twist, queue_size=10)
 
         # pid params
-        self.params_linear={'Kp':0.02, 'Ki':0, 'Kd':0}
+        self.params_linear={'Kp':0.1, 'Ki':0, 'Kd':0}
         self.params_ang={'Kp':0.5, 'Ki':0, 'Kd':0}
         self.intg=0
         self.last_error=0
@@ -69,11 +71,11 @@ class goToPose:
 
         # control loop
         while not rospy.is_shutdown():
-            # if self.prev==self.x_goals: continue
+            if self.prev==self.x_goals: continue
             
             for i in range(len(self.x_goals)):
                 goal_x=self.x_goals[i]
-                goal_y=self.y_goals[i]
+                goal_y=self.y_goals[i] #changing to conventional cartesian system
                 goal_theta=self.theta_goals[i]
 
                 while True:
@@ -81,8 +83,6 @@ class goToPose:
                     angle_error=goal_theta-self.theta
                     error_x=(goal_x-self.x)*math.cos(self.theta)+(goal_y-self.y)*math.sin(self.theta)
                     error_y=(goal_x-self.x)*math.sin(self.theta)-(goal_y-self.y)*math.cos(self.theta)
-
-                    print(error_x, error_y)
 
                     # velocity calculation
                     v_x, v_y=self.getLinearVel(error_x,  error_y, self.params_linear)
@@ -92,30 +92,19 @@ class goToPose:
                     # self.msg.linear.y=v_y
                     # self.msg.angular.z=ang_vel
 
-                    self.fw_msg.force.x, self.rw_msg.force.x, self.lw_msg.force.x=self.inverse_kinematics(0, 0, ang_vel)
-                    self.fw_msg.force.y, self.rw_msg.force.y, self.lw_msg.force.y=self.inverse_kinematics(v_x, v_y, 0)                    
+                    fw_vel, rw_vel, lw_vel=self.inverse_kinematics(v_x, v_y, ang_vel)
 
-                    # curr_time=rospy.get_time()
-                    # del_time=curr_time-self.prev_time
-                    # self.prev_time=curr_time
+                    self.fw_msg.force.x=fw_vel
+                    # self.fw_msg.force.y=fw_vel
 
-                    # # print(del_time, self.vf, self.prev_vf)
-                    
-                    
-                    # force_f=0.06*(self.vf-self.prev_vf)/(del_time+1e-9)
-                    # force_r=0.06*(self.vr-self.prev_vr)/(del_time+1e-9)
-                    # force_l=0.06*(self.vl-self.prev_vl)/(del_time+1e-9)
+                    self.rw_msg.force.x=rw_vel
+                    # self.rw_msg.force.y=rw_vel
 
-                    # self.prev_vf=self.vf
-                    # self.prev_vl=self.vl
-                    # self.prev_vr=self.vr
+                    self.lw_msg.force.x=lw_vel
+                    # self.lw_msg.force.y=lw_vel
 
-                    # self.fw_msg.force.x=force_f
-                    # self.lw_msg.force.x=force_l
-                    # self.rw_msg.force.x=force_r
-
-                    # print(force_f, force_l, force_r)
-
+                    # self.fw_msg.force.x, self.rw_msg.force.x, self.lw_msg.force.x=self.inverse_kinematics(0, 0, ang_vel)
+                    # self.fw_msg.force.y, self.rw_msg.force.y, self.lw_msg.force.y=self.inverse_kinematics(v_x, v_y, 0)
                     
                     self.front_wheel_pub.publish(self.fw_msg)
                     self.right_wheel_pub.publish(self.rw_msg)
@@ -130,21 +119,21 @@ class goToPose:
                     
                 rospy.sleep(1)
 
-            # self.prev=self.x_goals
+            self.prev=self.x_goals
 
-    # def task2_goals_Cb(self, msg):
-    #     self.x_goals.clear()
-    #     self.y_goals.clear()
-    #     self.theta_goals.clear()
+    def task2_goals_Cb(self, msg):
+        self.x_goals.clear()
+        self.y_goals.clear()
+        self.theta_goals.clear()
 
-    #     for waypoint_pose in msg.poses:
-    #         self.x_goals.append(waypoint_pose.position.x)
-    #         self.y_goals.append(waypoint_pose.position.y)
+        for waypoint_pose in msg.poses:
+            self.x_goals.append(waypoint_pose.position.x)
+            self.y_goals.append(waypoint_pose.position.y)
 
-    #         orientation_q = waypoint_pose.orientation
-    #         orientation_list = [orientation_q.x, orientation_q.y, orientation_q.z, orientation_q.w]
-    #         theta_goal = euler_from_quaternion (orientation_list)[2]
-    #         self.theta_goals.append(theta_goal)
+            orientation_q = waypoint_pose.orientation
+            orientation_list = [orientation_q.x, orientation_q.y, orientation_q.z, orientation_q.w]
+            theta_goal = euler_from_quaternion (orientation_list)[2]
+            self.theta_goals.append(theta_goal)
 
     def aruco_feedback_Cb(self, msg):
         self.x=msg.x
@@ -164,6 +153,7 @@ class goToPose:
         diff = error - self.last_error
         balance = const['Kp'] * prop + const['Ki'] * self.intg + const['Kd'] * diff
         self.last_error = error
+
         return balance
 
     # angular pid function

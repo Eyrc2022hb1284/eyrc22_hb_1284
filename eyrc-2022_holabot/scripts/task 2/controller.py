@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 '''
-Author: [Debrup, Sachin]
+Author: [Aman, Debrup, Sachin]
 '''
 
 from numpy import mat
@@ -20,25 +20,13 @@ class goToPose:
         self.y=0
         self.theta=0
 
-        self.vf=0
-        self.prev_vf=0
-
-        self.vl=0
-        self.prev_vl=0
-
-        self.vr=0
-        self.prev_vr=0
-
-        self.prev_time=rospy.get_time()
-
-
         # bot params
         self.d=0.17483
         self.r=0.03
 
         # threshold params
-        self.linear_thresh=0.04
-        self.ang_thresh=float(math.pi)/181
+        self.linear_thresh=1
+        self.ang_thresh=4*0.01745
 
         # goals
         self.x_goals=[]
@@ -55,7 +43,6 @@ class goToPose:
         self.right_wheel_pub = rospy.Publisher('/right_wheel_force', Wrench, queue_size=10)
         self.front_wheel_pub = rospy.Publisher('/front_wheel_force', Wrench, queue_size=10)
         self.left_wheel_pub = rospy.Publisher('/left_wheel_force', Wrench, queue_size=10)
-        self.pub=rospy.Publisher('/cmd_vel', Twist, queue_size=10)
 
         # pid params
         self.params_linear={'Kp':0.1, 'Ki':0, 'Kd':0}
@@ -67,49 +54,36 @@ class goToPose:
         self.rw_msg=Wrench()
         self.lw_msg=Wrench()
         self.fw_msg=Wrench()
-        self.msg=Twist()
 
         # control loop
         while not rospy.is_shutdown():
-            if self.prev==self.x_goals: continue
-            
+            if self.prev==self.theta_goals: continue
+
             for i in range(len(self.x_goals)):
                 goal_x=self.x_goals[i]
-                goal_y=self.y_goals[i] #changing to conventional cartesian system
+                goal_y=500-self.y_goals[i]  #conversion to cartesian system
                 goal_theta=self.theta_goals[i]
 
                 while True:
                     # error calculation
                     angle_error=goal_theta-self.theta
                     error_x=(goal_x-self.x)*math.cos(self.theta)+(goal_y-self.y)*math.sin(self.theta)
-                    error_y=(goal_x-self.x)*math.sin(self.theta)-(goal_y-self.y)*math.cos(self.theta)
+                    error_y=-(goal_x-self.x)*math.sin(self.theta)+(goal_y-self.y)*math.cos(self.theta)
 
                     # velocity calculation
                     v_x, v_y=self.getLinearVel(error_x,  error_y, self.params_linear)
                     ang_vel=self.getAngVel(angle_error, self.params_ang)
 
-                    # self.msg.linear.x=v_x
-                    # self.msg.linear.y=v_y
-                    # self.msg.angular.z=ang_vel
-
+                    # effort calculation
                     fw_vel, rw_vel, lw_vel=self.inverse_kinematics(v_x, v_y, ang_vel)
-
                     self.fw_msg.force.x=fw_vel
-                    # self.fw_msg.force.y=fw_vel
-
                     self.rw_msg.force.x=rw_vel
-                    # self.rw_msg.force.y=rw_vel
-
                     self.lw_msg.force.x=lw_vel
-                    # self.lw_msg.force.y=lw_vel
 
-                    # self.fw_msg.force.x, self.rw_msg.force.x, self.lw_msg.force.x=self.inverse_kinematics(0, 0, ang_vel)
-                    # self.fw_msg.force.y, self.rw_msg.force.y, self.lw_msg.force.y=self.inverse_kinematics(v_x, v_y, 0)
-                    
+                    # force publishing
                     self.front_wheel_pub.publish(self.fw_msg)
                     self.right_wheel_pub.publish(self.rw_msg)
                     self.left_wheel_pub.publish(self.lw_msg)
-                    # self.pub.publish(self.msg)
 
                     self.rate.sleep()
 
@@ -119,7 +93,8 @@ class goToPose:
                     
                 rospy.sleep(1)
 
-            self.prev=self.x_goals
+            self.prev=self.theta_goals
+            rospy.sleep(100)
 
     def task2_goals_Cb(self, msg):
         self.x_goals.clear()
@@ -137,10 +112,11 @@ class goToPose:
 
     def aruco_feedback_Cb(self, msg):
         self.x=msg.x
-        self.y=msg.y
+        self.y=500-msg.y
         self.theta=msg.theta
 
     def inverse_kinematics(self, vx, vy, w):
+        # inverse kinematic conversion for each wheel
         u1=(-self.d*w+vx)/self.r
         u2=(-self.d*w-vx/2-math.sqrt(3)*vy/2)/self.r
         u3=(-self.d*w-vx/2+math.sqrt(3)*vy/2)/self.r
@@ -168,8 +144,8 @@ class goToPose:
             else:
                 ang_vel = self.pid(error, const)
 
-            if ang_vel<0: ang_vel=-1
-            else: ang_vel=1
+            if ang_vel<0: ang_vel=-1.5
+            else: ang_vel=1.5
 
         else:
             self.stop()
@@ -191,19 +167,13 @@ class goToPose:
 
     # bot halt function
     def stop(self):
-        self.msg.linear.x = 0
-        self.msg.linear.y=0
-        self.msg.angular.z = 0
-
-        self.pub.publish(self.msg)
-    # def stop(self):
-    #     self.fw_msg.force.x=0
-    #     self.rw_msg.force.x=0
-    #     self.lw_msg.force.x=0
+        self.fw_msg.force.x=0
+        self.rw_msg.force.x=0
+        self.lw_msg.force.x=0
         
-    #     self.front_wheel_pub.publish(self.fw_msg)
-    #     self.right_wheel_pub.publish(self.rw_msg)
-    #     self.left_wheel_pub.publish(self.lw_msg)
+        self.front_wheel_pub.publish(self.fw_msg)
+        self.right_wheel_pub.publish(self.rw_msg)
+        self.left_wheel_pub.publish(self.lw_msg)
 
 if __name__=='__main__':
     gt=goToPose()

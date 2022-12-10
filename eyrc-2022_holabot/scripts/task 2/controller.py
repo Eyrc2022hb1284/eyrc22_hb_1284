@@ -4,9 +4,8 @@
 Author: [Aman, Debrup, Sachin]
 '''
 
-from numpy import mat
 import rospy
-from geometry_msgs.msg import PoseArray, Pose2D, Wrench, Twist
+from geometry_msgs.msg import PoseArray, Pose2D, Wrench
 import math
 from tf.transformations import euler_from_quaternion
 

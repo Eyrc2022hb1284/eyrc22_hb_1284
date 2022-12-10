@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 '''
-Author: [Aman, Debrup]
+Author: [Aman, Debrup, Sachin]
 '''
 
 import rospy 				
@@ -64,7 +64,6 @@ class ArucoFeedback:
 		x1, y1=corners[0] #upper left
 		x2, y2=corners[2] #lower right
 		x3, y3=corners[1] #upper right
-		x4, y4=corners[3] #lower left
 
 		#mid point of aruco marker
 		x, y=[int((x1+x2)/2), int((y1+y2)/2)]       

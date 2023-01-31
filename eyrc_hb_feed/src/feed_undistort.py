@@ -21,7 +21,7 @@ class FeedUndistort:
         self.dist_param=None
 
         self.sub=rospy.Subscriber('hb/image_raw', Image, self.cam_callback)
-        self.pub=rospy.Publisher('hb/undist_feed', Image, queue_size=10)
+        self.pub=rospy.Publisher('hb/image_undist', Image, queue_size=10)
 
         with open("eyrc_hb_feed/params/undist_params.p", 'rb') as file:
             self.dist_param = pickle.load(file)
@@ -33,8 +33,6 @@ class FeedUndistort:
         undistorted_frame = cv2.undistort(self.image, self.dist_param["mtx"], self.dist_param["dist"], None, self.dist_param["mtx"])
         self.image_msg = self.bridge.cv2_to_imgmsg(undistorted_frame, 'bgr8')
         self.pub.publish(self.image_msg)
-
-        cv2.imshow("undistorted image", undistorted_frame)
 
         rospy.loginfo("Feed undistorting...")
 

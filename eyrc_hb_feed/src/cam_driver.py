@@ -27,7 +27,6 @@ class CamDriver:
         else:
             while not rospy.is_shutdown():
                 _, frame=vid.read()
-                cv2.imshow("frame", frame)
 
                 self.img_msg=self.bridge.cv2_to_imgmsg(frame, 'bgr8')
                 self.pub.publish(self.img_msg)

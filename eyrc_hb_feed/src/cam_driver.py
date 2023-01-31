@@ -18,7 +18,7 @@ class CamDriver:
         # bridge object
         self.bridge=CvBridge()
         # publisher
-        self.pub=rospy.Publisher('/image_raw', Image, queue_size=10)
+        self.pub=rospy.Publisher('hb/image_raw', Image, queue_size=10)
 
         # video object
         vid=cv2.VideoCapture(2, cv2.CAP_V4L)

@@ -17,7 +17,7 @@ class CamDriver:
         # bridge object
         self.bridge=CvBridge()
         # publisher
-        self.pub=rospy.Publisher('/image_raw', Image, queue_size=10)
+        self.pub=rospy.Publisher('hb/image_raw', Image, queue_size=10)
 
         # video object
         vid=cv2.VideoCapture(2, cv2.CAP_V4L)
@@ -27,7 +27,6 @@ class CamDriver:
         else:
             while not rospy.is_shutdown():
                 _, frame=vid.read()
-                cv2.imshow("frame", frame)
 
                 self.img_msg=self.bridge.cv2_to_imgmsg(frame, 'bgr8')
                 self.pub.publish(self.img_msg)

@@ -8,6 +8,7 @@ Purpose: This server recieves goals via a client and publishes instantaneous vel
 import rospy
 from geometry_msgs.msg import Twist, Pose2D
 import math
+from control_utils import *
 
 class goToPose:
     def __init__(self):
@@ -50,8 +51,8 @@ class goToPose:
             error_y=-(self.x_-self.x)*math.sin(self.theta)+(self.y_goal-self.y)*math.cos(self.theta)
 
             # velocity calculation
-            v_x, v_y=self.getLinearVel(error_x,  error_y, self.params_linear)
-            ang_vel=self.getAngVel(angle_error, self.params_ang)
+            v_x, v_y=getLinearVel(error_x,  error_y, self.params_linear, self.linear_thresh)
+            ang_vel=getAngVel(angle_error, self.params_ang, self.ang_thresh)
 
             # setup the msg for publishing
             self.twist_msg.linear.x=v_x
@@ -70,49 +71,7 @@ class goToPose:
     def image_callback(self, msg):
         self.x=msg.x
         self.y=500-msg.y
-        self.theta=msg.theta
-
-    def pid(self, error, const):
-        prop = error
-        self.intg = error + self.intg
-        diff = error - self.last_error
-        balance = const['Kp'] * prop + const['Ki'] * self.intg + const['Kd'] * diff
-        self.last_error = error
-
-        return balance
-
-    # angular pid function
-    def getAngVel(self, error, const):
-        ang_vel=0
-
-        if abs(error) > self.ang_thresh:
-            if error > 3.14:
-                ang_vel = self.pid((error-6.28), const)
-            elif error < -3.14:
-                ang_vel = self.pid((error+6.28), const)
-            else:
-                ang_vel = self.pid(error, const)
-
-            if ang_vel<0: ang_vel=-1.5
-            else: ang_vel=1.5
-
-        else:
-            self.stop()
-
-        return ang_vel
-
-    # linear pid function
-    def getLinearVel(self, error_x,  error_y, const, x=True):
-        v_x=0
-        v_y=0
-        
-        if abs(error_x)>self.linear_thresh or abs(error_y)>self.linear_thresh:
-            v_x=self.pid(error_x, const)
-            v_y=self.pid(error_y, const)
-        else:
-            self.stop()
-
-        return v_x, v_y
+        self.theta=msg.thetaa
 
     # bot halt function
     def stop(self):

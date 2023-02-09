@@ -19,10 +19,9 @@ class Transmitter:
         # socket object
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-        rospy.loginfo("Connected to ")
-
         while not rospy.is_shutdown():
-            msg = "{}, {}, {}, 0\r".format(self.fw_rpm, self.lw_rpm, self.rw_rpm)
+            
+            msg = "{},{},{},0\r".format(self.fw_rpm, self.lw_rpm, self.rw_rpm)
             self.sock.sendto(str.encode(msg), (args.ip, args.port))
 
             print("Msg sent: {}".format(msg))

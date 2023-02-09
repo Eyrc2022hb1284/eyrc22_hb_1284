@@ -8,4 +8,7 @@ def getWheelVel(vx, vy, w, d, r):
         return fw, lw, rw
 
 def Vel2RPM(v):
-    return v*30/math.pi
+    rpm=v*30/math.pi
+
+    if(rpm>=0): return min(int(rpm), 200)
+    else: return max(int(rpm), -200)

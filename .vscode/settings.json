@@ -6,6 +6,7 @@
     ],
     "python.analysis.extraPaths": [
         "/home/kratos/cyborg_ws/devel/lib/python3/dist-packages",
-        "/opt/ros/noetic/lib/python3/dist-packages"
+        "/opt/ros/noetic/lib/python3/dist-packages",
+        "./eyrc_hb_control/src"
     ]
 }

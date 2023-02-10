@@ -9,7 +9,7 @@ from geometry_msgs.msg import Twist
 class Transmitter:
     def __init__(self, args):
         rospy.init_node('transmitter')
-
+        rate = rospy.Rate(75)
         self.fw_rpm=0
         self.lw_rpm=0
         self.rw_rpm=0
@@ -21,19 +21,18 @@ class Transmitter:
 
         while not rospy.is_shutdown():
             
-            msg = "{},{},{},0\r".format(self.fw_rpm, self.lw_rpm, self.rw_rpm)
+            msg = "{},{},{},0\r".format(self.fw_rpm,self.rw_rpm,self.lw_rpm)
             self.sock.sendto(str.encode(msg), (args.ip, args.port))
-
-            print("Msg sent: {}".format(msg))
+            print("Data sent: {}".format(msg))
+            
+            rate.sleep()
 
     def callback(self, data):
 
         fw_vel, lw_vel, rw_vel=getWheelVel(data.linear.x, data.linear.y, data.angular.z, d=0.105, r=0.029)
 
         # convert m/s to rpm
-        self.fw_rpm=Vel2RPM(fw_vel)
-        self.lw_rpm=Vel2RPM(lw_vel)
-        self.rw_rpm=Vel2RPM(rw_vel)            
+        self.fw_rpm, self.lw_rpm, self.rw_rpm=Vel2RPM(fw_vel, lw_vel, rw_vel)         
 
 if __name__ == '__main__':
 

@@ -22,14 +22,14 @@ class goToPose:
 
         # threshold params
         self.linear_thresh=1
-        self.ang_thresh=4*0.01745
+        self.ang_thresh=0.1
 
         # goals
-        self.x_goal=None
-        self.y_goal=None
-        self.theta_goal=None
+        self.x_goal=250
+        self.y_goal=250
+        self.theta_goal=0
 
-        self.rate=rospy.Rate(10)
+        self.rate=rospy.Rate(75)
 
         # subscriber/publisher
         self.odom_sub=rospy.Subscriber('hb/odom', Pose2D, self.odom_callback)
@@ -38,8 +38,8 @@ class goToPose:
         # pid params
         self.params_linear={'Kp':0, 'Ki':0, 'Kd':0}
         self.params_ang={'Kp':0, 'Ki':0, 'Kd':0}
-        self.intg=0
-        self.last_error=0
+        self.intg={'vx':0, 'vy':0, 'w':0}
+        self.last_error={'vx':0, 'vy':0, 'w':0}
 
         self.twist_msg=Twist()
 
@@ -48,11 +48,11 @@ class goToPose:
             # error calculation
             angle_error=self.theta_goal-self.theta
             error_x=(self.x_goal-self.x)*math.cos(self.theta)+(self.y_goal-self.y)*math.sin(self.theta)
-            error_y=-(self.x_-self.x)*math.sin(self.theta)+(self.y_goal-self.y)*math.cos(self.theta)
+            error_y=-(self.x_goal-self.x)*math.sin(self.theta)+(self.y_goal-self.y)*math.cos(self.theta)
 
             # velocity calculation
-            v_x, v_y=getLinearVel(error_x,  error_y, self.params_linear, self.linear_thresh)
-            ang_vel=getAngVel(angle_error, self.params_ang, self.ang_thresh)
+            v_x, v_y=getLinearVel(error_x,  error_y, self.params_linear, self.linear_thresh, self.intg, self.last_error)
+            ang_vel=getAngVel(angle_error, self.params_ang, self.ang_thresh, self.intg, self.last_error)
 
             # setup the msg for publishing
             self.twist_msg.linear.x=v_x
@@ -71,7 +71,7 @@ class goToPose:
     def image_callback(self, msg):
         self.x=msg.x
         self.y=500-msg.y
-        self.theta=msg.thetaa
+        self.theta=msg.theta
 
     # bot halt function
     def stop(self):

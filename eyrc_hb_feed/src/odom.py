@@ -11,6 +11,7 @@ from cv_bridge import CvBridge
 import cv2				
 import math	
 from geometry_msgs.msg import Pose2D
+from odom_utils import *
 
 class Odom:
 	def __init__(self):
@@ -39,49 +40,20 @@ class Odom:
 		while not rospy.is_shutdown():
 			if self.frame is None: continue
 
-			corners=self.detect_aruco(self.frame)
+			corners=detect_aruco(self.frame, self.dict, self.params)
 			if len(corners)==0: continue
 
 			# store pose in the pose msg
-			self.pose_msg.x, self.pose_msg.y, self.pose_msg.theta = self.getPose(corners[0][0])
+			self.pose_msg.x, self.pose_msg.y, self.pose_msg.theta = getPose(corners[0][0])
+
 			self.pub.publish(self.pose_msg)
+
 			rospy.loginfo("Publishing Odom")
 
 	def callback(self, data):
 		# recieves the feed
-		rospy.loginfo("receiving camera frame")
 		get_frame = self.bridge.imgmsg_to_cv2(data, "mono8")
 		self.frame = cv2.resize(get_frame, (500, 500), interpolation = cv2.INTER_LINEAR)
-
-    #detects the presence of aruco markers in the cam feed and returns the coordinates of the corners
-	def detect_aruco(self, aruco_frame):
-        #detect the markers in the frame
-		corners, _, _ = cv2.aruco.detectMarkers(aruco_frame, self.dict, parameters=self.params)
-		
-		return corners
-
-	def getPose(self, corners):
-		# returns pose of the bot
-
-		x1, y1=corners[0] #upper left
-		x2, y2=corners[2] #lower right
-		x3, y3=corners[1] #upper right
-
-		#mid point of aruco marker
-		x, y=[int((x1+x2)/2), int((y1+y2)/2)]       
-		#mid point of right side of aruco marker  
-		x_rm, y_rm=[int((x2+x3)/2), int((y2+y3)/2)]   
-
-		# frame=cv2.arrowedLine(self.frame, (x, y), (x_rm, y_rm), (255, 0, 255), 1, 8, 0, 0.1)
-		# cv2.imshow('frame', frame)
-
-		if cv2.waitKey(27) & 0xFF == ord('q'):
-			rospy.signal_shutdown('user command')
-		
-		# orientation
-		theta=math.atan2((y-y_rm), (x_rm-x))
-		
-		return x, y, theta
 
 if __name__ == '__main__':
     od=Odom()

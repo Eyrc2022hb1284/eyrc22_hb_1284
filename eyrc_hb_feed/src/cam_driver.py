@@ -23,7 +23,8 @@ class CamDriver:
         vid=cv2.VideoCapture(2, cv2.CAP_V4L)
                 
         if  not vid.isOpened():
-            print("Camera unavailable")
+            print("Cannot access camera")
+            rospy.signal_shutdown("Camera unavailable")
         else:
             while not rospy.is_shutdown():
                 _, frame=vid.read()

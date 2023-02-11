@@ -13,6 +13,14 @@ def Vel2RPM(fw_vel, lw_vel, rw_vel):
     lw_rpm=lw_vel*30/math.pi
     rw_rpm=rw_vel*30/math.pi
 
+    if abs(fw_rpm)>196 or abs(lw_rpm)>196 or abs(rw_rpm)>196:
+        max_rpm_magnitude=max(abs(fw_rpm), abs(lw_rpm), abs(rw_rpm))
+
+        fw_rpm=float(fw_rpm)/max_rpm_magnitude*196
+        lw_rpm=float(lw_rpm)/max_rpm_magnitude*196
+        rw_rpm=float(rw_rpm)/max_rpm_magnitude*196
+
+
     return int(fw_rpm), int(lw_rpm), int(rw_rpm)
 
 #     if(rpm>=0): return min(int(rpm), 200)

@@ -1,15 +1,6 @@
-import cv2
-import rospy
 import math
 
-#detects the presence of aruco markers in the cam feed and returns the coordinates of the corners
-def detect_aruco(aruco_frame, dict, params):
-    #detect the markers in the frame
-    corners, _, _ = cv2.aruco.detectMarkers(aruco_frame, dict, parameters=params)
-    
-    return corners
-
-
+# calcualtes pose of the robot
 def getPose(corners):
 		# returns pose of the bot
 

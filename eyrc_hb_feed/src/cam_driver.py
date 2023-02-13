@@ -21,26 +21,22 @@ class CamDriver:
 
         # video object
         vid=cv2.VideoCapture(2, cv2.CAP_V4L)
-                
-        if  not vid.isOpened():
-            print("Cannot access camera")
-            rospy.signal_shutdown("Camera unavailable")
-        else:
-            while not rospy.is_shutdown():
-                _, frame=vid.read()
 
+        while not rospy.is_shutdown():
+
+            if  not vid.isOpened():
+                rospy.loginfo("Cannot access camera")
+                rospy.signal_shutdown("Camera unavailable")
+            else:
+                _, frame=vid.read()
                 self.img_msg=self.bridge.cv2_to_imgmsg(frame, 'bgr8')
                 self.pub.publish(self.img_msg)
+                rospy.loginfo("camera feed publishing")
 
-                rospy.loginfo("Camera feed publishing")
-
-                if cv2.waitKey(27) & 0xFF == ord('q'):
-                    rospy.signal_shutdown('user command')
-
-            # After the loop release the cap object
-            vid.release()
-            # Destroy all the windows
-            cv2.destroyAllWindows()
+        # After the loop release the cap object
+        vid.release()
+        # Destroy all the windows
+        cv2.destroyAllWindows()
 
 if __name__=='__main__':
     cd=CamDriver()

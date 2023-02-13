@@ -8,6 +8,7 @@ Purpose: This server recieves goals via a client and publishes instantaneous vel
 import rospy
 from geometry_msgs.msg import Twist, Pose2D
 import math
+from control_utils import *
 
 class goToPose:
     def __init__(self):
@@ -21,14 +22,14 @@ class goToPose:
 
         # threshold params
         self.linear_thresh=1
-        self.ang_thresh=4*0.01745
+        self.ang_thresh=0.1
 
         # goals
-        self.x_goal=None
-        self.y_goal=None
-        self.theta_goal=None
+        self.x_goal=250
+        self.y_goal=250
+        self.theta_goal=0
 
-        self.rate=rospy.Rate(10)
+        self.rate=rospy.Rate(75)
 
         # subscriber/publisher
         self.odom_sub=rospy.Subscriber('hb/odom', Pose2D, self.odom_callback)
@@ -37,8 +38,8 @@ class goToPose:
         # pid params
         self.params_linear={'Kp':0, 'Ki':0, 'Kd':0}
         self.params_ang={'Kp':0, 'Ki':0, 'Kd':0}
-        self.intg=0
-        self.last_error=0
+        self.intg={'vx':0, 'vy':0, 'w':0}
+        self.last_error={'vx':0, 'vy':0, 'w':0}
 
         self.twist_msg=Twist()
 
@@ -47,11 +48,11 @@ class goToPose:
             # error calculation
             angle_error=self.theta_goal-self.theta
             error_x=(self.x_goal-self.x)*math.cos(self.theta)+(self.y_goal-self.y)*math.sin(self.theta)
-            error_y=-(self.x_-self.x)*math.sin(self.theta)+(self.y_goal-self.y)*math.cos(self.theta)
+            error_y=-(self.x_goal-self.x)*math.sin(self.theta)+(self.y_goal-self.y)*math.cos(self.theta)
 
             # velocity calculation
-            v_x, v_y=self.getLinearVel(error_x,  error_y, self.params_linear)
-            ang_vel=self.getAngVel(angle_error, self.params_ang)
+            v_x, v_y=getLinearVel(error_x,  error_y, self.params_linear, self.linear_thresh, self.intg, self.last_error)
+            ang_vel=getAngVel(angle_error, self.params_ang, self.ang_thresh, self.intg, self.last_error)
 
             # setup the msg for publishing
             self.twist_msg.linear.x=v_x
@@ -71,48 +72,6 @@ class goToPose:
         self.x=msg.x
         self.y=500-msg.y
         self.theta=msg.theta
-
-    def pid(self, error, const):
-        prop = error
-        self.intg = error + self.intg
-        diff = error - self.last_error
-        balance = const['Kp'] * prop + const['Ki'] * self.intg + const['Kd'] * diff
-        self.last_error = error
-
-        return balance
-
-    # angular pid function
-    def getAngVel(self, error, const):
-        ang_vel=0
-
-        if abs(error) > self.ang_thresh:
-            if error > 3.14:
-                ang_vel = self.pid((error-6.28), const)
-            elif error < -3.14:
-                ang_vel = self.pid((error+6.28), const)
-            else:
-                ang_vel = self.pid(error, const)
-
-            if ang_vel<0: ang_vel=-1.5
-            else: ang_vel=1.5
-
-        else:
-            self.stop()
-
-        return ang_vel
-
-    # linear pid function
-    def getLinearVel(self, error_x,  error_y, const, x=True):
-        v_x=0
-        v_y=0
-        
-        if abs(error_x)>self.linear_thresh or abs(error_y)>self.linear_thresh:
-            v_x=self.pid(error_x, const)
-            v_y=self.pid(error_y, const)
-        else:
-            self.stop()
-
-        return v_x, v_y
 
     # bot halt function
     def stop(self):

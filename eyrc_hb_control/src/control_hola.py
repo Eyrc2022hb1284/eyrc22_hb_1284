@@ -76,7 +76,7 @@ class goToPose:
                 
     def odom_callback(self, msg):
         self.x=msg.x
-        self.y=500-msg.y
+        self.y=msg.y
         self.theta=msg.theta
 
     # bot halt function

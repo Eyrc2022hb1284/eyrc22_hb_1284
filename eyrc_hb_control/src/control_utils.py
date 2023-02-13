@@ -1,14 +1,14 @@
 # angular pid function
-def getAngVel(error, const, ang_thresh):
+def getAngVel(error, const, ang_thresh, intg_params, last_error_params):
     ang_vel=0
 
     if abs(error) > ang_thresh:
         if error > 3.14:
-            ang_vel = pid((error-6.28), const)
+            ang_vel = pid((error-6.28), const, intg_params['w'], last_error_params['w'])
         elif error < -3.14:
-            ang_vel = pid((error+6.28), const)
+            ang_vel = pid((error+6.28), const, intg_params['w'], last_error_params['w'])
         else:
-            ang_vel = pid(error, const)
+            ang_vel = pid(error, const, intg_params['w'], last_error_params['w'], )
 
         if ang_vel<0: ang_vel=-1.5
         else: ang_vel=1.5
@@ -19,13 +19,13 @@ def getAngVel(error, const, ang_thresh):
     return ang_vel
 
 # linear pid function
-def getLinearVel(error_x,  error_y, const, linear_thresh):
+def getLinearVel(error_x,  error_y, const, linear_thresh, intg_params, last_error_params):
     v_x=0
     v_y=0
     
     if abs(error_x)>linear_thresh or abs(error_y)>linear_thresh:
-        v_x=pid(error_x, const)
-        v_y=pid(error_y, const)
+        v_x=pid(error_x, const, intg_params['vx'], last_error_params['vx'])
+        v_y=pid(error_y, const, intg_params['vy'], last_error_params['vy'])
     # else:
     #     self.stop()
 

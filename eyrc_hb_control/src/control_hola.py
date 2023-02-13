@@ -36,8 +36,8 @@ class goToPose:
         self.twist_pub=rospy.Publisher('hb/cmd_vel', Twist, queue_size=10)
         
         # pid params
-        self.params_linear={'Kp':0, 'Ki':0, 'Kd':0}
-        self.params_ang={'Kp':0, 'Ki':0, 'Kd':0}
+        self.params_linear={'Kp':0.025, 'Ki':0, 'Kd':0}
+        self.params_ang={'Kp':1, 'Ki':0, 'Kd':0}
         self.intg={'vx':0, 'vy':0, 'w':0}
         self.last_error={'vx':0, 'vy':0, 'w':0}
 
@@ -46,6 +46,8 @@ class goToPose:
         # control loop
         while not rospy.is_shutdown():
             # error calculation
+            # print("theta: {}".format(self.theta))
+
             angle_error=self.theta_goal-self.theta
             error_x=(self.x_goal-self.x)*math.cos(self.theta)+(self.y_goal-self.y)*math.sin(self.theta)
             error_y=-(self.x_goal-self.x)*math.sin(self.theta)+(self.y_goal-self.y)*math.cos(self.theta)
@@ -53,6 +55,8 @@ class goToPose:
             # velocity calculation
             v_x, v_y=getLinearVel(error_x,  error_y, self.params_linear, self.linear_thresh, self.intg, self.last_error)
             ang_vel=getAngVel(angle_error, self.params_ang, self.ang_thresh, self.intg, self.last_error)
+
+            print("vx: {} vy: {} Ang vel: {}".format(v_x, v_y, ang_vel))
 
             # setup the msg for publishing
             self.twist_msg.linear.x=v_x
@@ -64,13 +68,15 @@ class goToPose:
             self.rate.sleep()
 
             #stop when reached target pose
+            # if abs(angle_error)<=self.ang_thresh:
             if abs(angle_error)<=self.ang_thresh and abs(error_x)<=self.linear_thresh and abs(error_y)<=self.linear_thresh:
+                print("Halting")
                 self.stop()
-                break
+                # break
                 
-    def image_callback(self, msg):
+    def odom_callback(self, msg):
         self.x=msg.x
-        self.y=500-msg.y
+        self.y=msg.y
         self.theta=msg.theta
 
     # bot halt function

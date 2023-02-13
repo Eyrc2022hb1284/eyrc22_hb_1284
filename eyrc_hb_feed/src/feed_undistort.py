@@ -33,7 +33,9 @@ class FeedUndistort:
         
         # undistort
         undistorted_frame = cv2.undistort(self.image, self.dist_param["mtx"], self.dist_param["dist"], None, self.dist_param["mtx"])
-        
+        # cv2.imshow('frame', undistorted_frame)
+        # cv2.waitKey(1)
+
         # publish undistorted feed
         self.image_msg = self.bridge.cv2_to_imgmsg(undistorted_frame, 'bgr8')
         self.pub.publish(self.image_msg)

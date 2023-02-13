@@ -6,25 +6,31 @@ import numpy as np
 def detect_aruco(aruco_frame, dict, params):
 	#detect the markers in the frame
 	corners, id, _ = cv2.aruco.detectMarkers(aruco_frame, dict, parameters=params)
-
-	# convert to numpy and change dtype
-	corners = np.array(corners)
-	id = np.array(id)
-	corners = corners.astype(np.int32)
-	id=id.astype(np.int32)
-
-	# flatten the ndarray
-	corners=corners.flatten()
-
-	# convert to list
-	corners.tolist()
-	id.tolist()
-
-	# explicitly convert dtype
-	id=[int(id[j]) for j in range(len(id))]
-	corners=[int(corners[j]) for j in range(len(corners))]
 	
 	return id, corners
+
+def extract_arena_corners(corner_msg, id_msg, aruco_ids):
+	upperLeft=None
+	upperRight=None
+	bottomLeft=None
+	bottomRight=None
+	
+	for i in range(len(corner_msg)):
+		if(id_msg[i][0]==aruco_ids[0]): bottomRight=corner_msg[i][0][2]
+
+		if(id_msg[i][0]==aruco_ids[1]): bottomLeft=corner_msg[i][0][3]
+
+		if(id_msg[i][0]==aruco_ids[2]): upperRight=corner_msg[i][0][1]
+
+		if(id_msg[i][0]==aruco_ids[3]): upperLeft=corner_msg[i][0][0]
+	
+	return upperRight, upperLeft, bottomRight, bottomLeft
+
+def perspectiveTransform(feed, arena_corners, final_feed_corners):
+	mat=cv2.getPerspectiveTransform(arena_corners, final_feed_corners)
+	feed=cv2.warpPerspective(feed, mat, (500, 500))
+
+	return feed
 
 def transformCorner(corners):
 	corners=np.array(corners)
@@ -39,27 +45,3 @@ def transformCorner(corners):
 		corners=corners.reshape((rows, 4, 2))
 		# print(corners)
 		return corners
-
-
-# calcualtes pose of the robot
-def getPose(corners):
-		# returns pose of the bot
-
-		x1, y1=corners[0] #upper left
-		x2, y2=corners[2] #lower right
-		x3, y3=corners[1] #upper right
-
-		#mid point of aruco marker
-		x, y=[int((x1+x2)/2), int((y1+y2)/2)]       
-		#mid point of right side of aruco marker  
-		x_rm, y_rm=[int((x2+x3)/2), int((y2+y3)/2)]   
-
-		# frame=cv2.arrowedLine(self.frame, (x, y), (x_rm, y_rm), (255, 0, 255), 1, 8, 0, 0.1)
-		# cv2.imshow('frame', frame)
-
-		# cv2.waitKey(1)
-		
-		# orientation
-		theta=math.atan2((y-y_rm), (x_rm-x))
-		
-		return x, y, theta

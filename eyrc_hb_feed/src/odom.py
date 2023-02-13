@@ -11,7 +11,8 @@ from cv_bridge import CvBridge
 import cv2				
 import math	
 from geometry_msgs.msg import Pose2D
-from aruco_utils import *
+from aruco_utils import detect_aruco
+from odom_utils import getPose
 
 class Odom:
 	def __init__(self):
@@ -31,6 +32,8 @@ class Odom:
 		
 		# bot aruco marker id
 		self.botID=3
+		self.bot_aruco_corners=[]
+		
 		# pose
 		self.x=0
 		self.y=0
@@ -43,20 +46,23 @@ class Odom:
 			if self.frame is None: continue
 
 			id, corners=detect_aruco(self.frame, self.dict, self.params)
-			corners=transformCorner(corners)
-			# print(corners)
+			if len(corners)==0 or len(id)==0 or len(corners)!=len(id): continue
+
+			for i in range(len(corners)):
+				if id[i][0]==self.botID:
+					self.bot_aruco_corners=corners[i][0]
+					break
+			
+			if len(self.bot_aruco_corners)==0: continue
 
 			# store pose in the pose msg
-			self.pose_msg.x, self.pose_msg.y, self.pose_msg.theta = getPose(corners[0])
-
+			self.pose_msg.x, self.pose_msg.y, self.pose_msg.theta = getPose(self.bot_aruco_corners)
 			self.pub.publish(self.pose_msg)
-
 			rospy.loginfo("Publishing Odom")
 
 	def callback(self, data):
 		# recieves the feed
 		self.frame = self.bridge.imgmsg_to_cv2(data, "mono8")
-		# self.frame = cv2.resize(get_frame, (500, 500), interpolation = cv2.INTER_LINEAR)
 
 if __name__ == '__main__':
     od=Odom()

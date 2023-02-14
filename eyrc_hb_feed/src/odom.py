@@ -46,17 +46,26 @@ class Odom:
 			if self.frame is None: continue
 
 			id, corners=detect_aruco(self.frame, self.dict, self.params)
-			if len(corners)==0 or len(id)==0 or len(corners)!=len(id): continue
 
-			for i in range(len(corners)):
-				if id[i][0]==self.botID:
-					self.bot_aruco_corners=corners[i][0]
-					break
+			if len(corners)==0 or len(id)==0 or len(corners)!=len(id): 
+				self.pose_msg.x=-1
+				self.pose_msg.y=-1
+				self.pose_msg.theta=4
+				self.pub.publish(self.pose_msg)
 			
-			if len(self.bot_aruco_corners)==0: continue
+			else:
+				# get bot aruco corners
+				for i in range(len(corners)):
+					if id[i][0]==self.botID:
+						self.bot_aruco_corners=corners[i][0]
+						break
 
-			# store pose in the pose msg
-			self.pose_msg.x, self.pose_msg.y, self.pose_msg.theta = getPose(self.bot_aruco_corners)
+				# if bot aruco marker corners not found
+				if len(self.bot_aruco_corners)==0: continue
+					
+				# store pose in the pose msg
+				self.pose_msg.x, self.pose_msg.y, self.pose_msg.theta = getPose(self.bot_aruco_corners)
+
 			self.pub.publish(self.pose_msg)
 			rospy.loginfo("Publishing Odom")
 

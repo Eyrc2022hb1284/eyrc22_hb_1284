@@ -49,14 +49,13 @@ class goToPose:
         self.twist_msg=Twist()
 
         # control loop
-        # while not rospy.is_shutdown():
         for i in range(len(self.x_goals)):
 
             self.x_goal=self.x_goals[i]
             self.y_goal=self.y_goals[i]
             self.theta_goal=self.theta_goals[i]
 
-            print("Goal: [{}, {}, {}]".format(self.x_goal, self.y_goal, self.theta_goal))
+            print("Goal: [{}, {}, {}]".format(self.x_goal, 500-self.y_goal, self.theta_goal))
 
             while True:
                 if self.x==-1 and self.y==-1 and self.theta==4:
@@ -84,8 +83,8 @@ class goToPose:
 
                     #stop when reached target pose
                     if abs(angle_error)<=self.ang_thresh and abs(error_x)<=self.linear_thresh and abs(error_y)<=self.linear_thresh:
-                        print("Halting")
                         self.stop()
+                        print("reached goal pose: [{}, {}, {}]".format(self.x, 500-self.y, round(self.theta, 3)))
                         rospy.sleep(2)
                         break
 
@@ -94,7 +93,7 @@ class goToPose:
     # odometry callback             
     def odom_callback(self, msg):
         self.x=msg.x
-        self.y=msg.y
+        self.y=500-msg.y #cartesian transformation
         self.theta=msg.theta
 
     # bot halt function

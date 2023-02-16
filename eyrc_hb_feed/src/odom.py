@@ -34,11 +34,6 @@ class Odom:
 		self.botID=15
 		self.bot_aruco_corners=[]
 		
-		# pose
-		self.x=0
-		self.y=0
-		self.theta=0
-		
 		rospy.Subscriber('hb/cam_feed', Image, self.callback)
 		self.pub = rospy.Publisher('hb/odom', Pose2D, queue_size=10)
 
@@ -66,12 +61,17 @@ class Odom:
 				# store pose in the pose msg
 				self.pose_msg.x, self.pose_msg.y, self.pose_msg.theta = getPose(self.bot_aruco_corners)
 
+				self.frame = cv2.putText(self.frame, 'x: {} y: {} theta: {}'.format(self.pose_msg.x, self.pose_msg.y, round(self.pose_msg.theta, 3)), (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
+				cv2.imshow('frame', self.frame)
+				cv2.waitKey(1)
+
 			self.pub.publish(self.pose_msg)
 			rospy.loginfo("Publishing Odom")
 
 	def callback(self, data):
 		# recieves the feed
 		self.frame = self.bridge.imgmsg_to_cv2(data, "mono8")
+
 
 if __name__ == '__main__':
     od=Odom()

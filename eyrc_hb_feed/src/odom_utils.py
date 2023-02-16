@@ -16,4 +16,4 @@ def getPose(corners):
 		# orientation
 		theta=math.atan2((y-y_rm), (x_rm-x))
 		
-		return x, 500-y, theta
+		return x, y, theta

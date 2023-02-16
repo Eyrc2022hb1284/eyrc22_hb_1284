@@ -31,7 +31,7 @@ class Odom:
 		self.frame=None
 		
 		# bot aruco marker id
-		self.botID=3
+		self.botID=15
 		self.bot_aruco_corners=[]
 		
 		# pose

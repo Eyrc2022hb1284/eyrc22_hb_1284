@@ -52,7 +52,7 @@ class goToPose:
         for i in range(len(self.x_goals)):
 
             self.x_goal=self.x_goals[i]
-            self.y_goal=self.y_goals[i]
+            self.y_goal=500-self.y_goals[i]  #cartesian transformation
             self.theta_goal=self.theta_goals[i]
 
             print("Goal: [{}, {}, {}]".format(self.x_goal, 500-self.y_goal, self.theta_goal))
@@ -84,7 +84,7 @@ class goToPose:
                     #stop when reached target pose
                     if abs(angle_error)<=self.ang_thresh and abs(error_x)<=self.linear_thresh and abs(error_y)<=self.linear_thresh:
                         self.stop()
-                        print("reached goal pose: [{}, {}, {}]".format(self.x, 500-self.y, round(self.theta, 3)))
+                        print("reached goal pose: [{}, {}, {}]".format(self.x,  500-self.y, round(self.theta, 3)))
                         rospy.sleep(2)
                         break
 

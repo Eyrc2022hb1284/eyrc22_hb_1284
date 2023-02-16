@@ -49,45 +49,45 @@ class goToPose:
         self.twist_msg=Twist()
 
         # control loop
-        while not rospy.is_shutdown():
-            for i in range(len(self.x_goals)):
+        # while not rospy.is_shutdown():
+        for i in range(len(self.x_goals)):
 
-                self.x_goal=self.x_goals[i]
-                self.y_goal=self.y_goals[i]
-                self.theta_goal=self.theta_goals[i]
+            self.x_goal=self.x_goals[i]
+            self.y_goal=self.y_goals[i]
+            self.theta_goal=self.theta_goals[i]
 
-                print("Goal: [{}, {}, {}]".format(self.x_goal, self.y_goal, self.theta_goal))
+            print("Goal: [{}, {}, {}]".format(self.x_goal, self.y_goal, self.theta_goal))
 
-                while True:
-                    if self.x==-1 and self.y==-1 and self.theta==4:
-                        # print("aruco marker not detected")
+            while True:
+                if self.x==-1 and self.y==-1 and self.theta==4:
+                    # print("aruco marker not detected")
+                    self.stop()
+
+                else:
+                    # error calculation
+                    angle_error=self.theta_goal-self.theta
+                    error_x=(self.x_goal-self.x)*math.cos(self.theta)+(self.y_goal-self.y)*math.sin(self.theta)
+                    error_y=-(self.x_goal-self.x)*math.sin(self.theta)+(self.y_goal-self.y)*math.cos(self.theta)
+
+                    # velocity calculation
+                    v_x, v_y=getLinearVel(error_x,  error_y, self.params_linear, self.linear_thresh, self.intg, self.last_error)
+                    ang_vel=getAngVel(angle_error, self.params_ang, self.ang_thresh, self.intg, self.last_error)
+
+                    # setup the msg for publishing
+                    self.twist_msg.linear.x=v_x
+                    self.twist_msg.linear.y=v_y
+                    self.twist_msg.angular.z=ang_vel
+
+                    # publish onto hb/cmd_vel
+                    self.twist_pub.publish(self.twist_msg)
+                    self.rate.sleep()
+
+                    #stop when reached target pose
+                    if abs(angle_error)<=self.ang_thresh and abs(error_x)<=self.linear_thresh and abs(error_y)<=self.linear_thresh:
+                        print("Halting")
                         self.stop()
-
-                    else:
-                        # error calculation
-                        angle_error=self.theta_goal-self.theta
-                        error_x=(self.x_goal-self.x)*math.cos(self.theta)+(self.y_goal-self.y)*math.sin(self.theta)
-                        error_y=-(self.x_goal-self.x)*math.sin(self.theta)+(self.y_goal-self.y)*math.cos(self.theta)
-
-                        # velocity calculation
-                        v_x, v_y=getLinearVel(error_x,  error_y, self.params_linear, self.linear_thresh, self.intg, self.last_error)
-                        ang_vel=getAngVel(angle_error, self.params_ang, self.ang_thresh, self.intg, self.last_error)
-
-                        # setup the msg for publishing
-                        self.twist_msg.linear.x=v_x
-                        self.twist_msg.linear.y=v_y
-                        self.twist_msg.angular.z=ang_vel
-
-                        # publish onto hb/cmd_vel
-                        self.twist_pub.publish(self.twist_msg)
-                        self.rate.sleep()
-
-                        #stop when reached target pose
-                        if abs(angle_error)<=self.ang_thresh and abs(error_x)<=self.linear_thresh and abs(error_y)<=self.linear_thresh:
-                            print("Halting")
-                            self.stop()
-                            rospy.sleep(2)
-                            break
+                        rospy.sleep(2)
+                        break
 
         rospy.loginfo("Task completed!")
 

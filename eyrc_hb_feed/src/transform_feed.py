@@ -23,7 +23,7 @@ class PerspectiveTransform:
         # aruco data
         self.corners=[]
         self.ids=[]
-        self.aruco_ids=[1, 5, 4, 6] #aruco ids present in the arena corners
+        self.aruco_ids=[12, 4, 10, 8] #aruco ids present in the arena corners
 
         # Perspective Transform params
         self.upperRight=None
@@ -49,10 +49,14 @@ class PerspectiveTransform:
         self.feed=self.bridge.imgmsg_to_cv2(data, 'bgr8')
 
         self.ids, self.corners=detect_aruco(self.feed, self.dict, self.params)
+
+        # print(self.ids)
+        # print(self.corners)
         
         if len(self.corners)!=0 and len(self.ids)!=0 and len(self.corners)==len(self.ids):
         
             curr_upperRight, curr_upperLeft, curr_bottomRight, curr_bottomLeft=extract_arena_corners(self.corners, self.ids, self.aruco_ids)
+
 
             # dont update corners if they arent detected
             if(curr_upperRight is not None): self.upperRight=curr_upperRight

@@ -2,7 +2,7 @@
 
 '''
 Author: Debrup
-Purpose: Publish /image_raw from camera feed
+Purpose: Publish hb/image_raw from camera feed
 '''
 
 import rospy

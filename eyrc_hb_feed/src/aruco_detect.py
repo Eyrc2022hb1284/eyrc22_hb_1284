@@ -11,7 +11,7 @@ import cv2
 from std_msgs.msg import Int32MultiArray
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
-from aruco_utils import detect_aruco
+from feed_utils import detect_aruco
 import numpy as np
 
 class ArucoDetect:

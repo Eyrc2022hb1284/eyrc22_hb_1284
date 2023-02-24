@@ -11,6 +11,8 @@ from std_msgs.msg import String
 import math
 from control_utils import *
 import ast
+import cv2
+import numpy as np
 
 class goToPose:
     def __init__(self):
@@ -23,7 +25,7 @@ class goToPose:
         self.theta=0
 
         # threshold params
-        self.linear_thresh=1
+        self.linear_thresh=3
         self.ang_thresh=0.1
 
         # goals
@@ -36,6 +38,8 @@ class goToPose:
         self.y_goal=None
         self.theta_goal=None
 
+        self.trajectory=[]
+
         self.rate=rospy.Rate(75)
 
         # subscriber/publisher
@@ -44,8 +48,8 @@ class goToPose:
         self.twist_pub=rospy.Publisher('hb/cmd_vel', Twist, queue_size=10)
         
         # pid params
-        self.params_linear={'Kp':0.03125, 'Ki':0, 'Kd':0}
-        self.params_ang={'Kp':1, 'Ki':0, 'Kd':0}
+        self.params_linear={'Kp':0.06, 'Ki':0, 'Kd':0}
+        self.params_ang={'Kp':5, 'Ki':0, 'Kd':0}
         self.intg={'vx':0, 'vy':0, 'w':0}
         self.last_error={'vx':0, 'vy':0, 'w':0}
 
@@ -80,22 +84,40 @@ class goToPose:
                     ang_vel=getAngVel(angle_error, self.params_ang, self.ang_thresh, self.intg, self.last_error)
 
                     # setup the msg for publishing
-                    self.twist_msg.linear.x=v_x
+                    self.twist_msg.linear.x=v_x 
                     self.twist_msg.linear.y=v_y
                     self.twist_msg.angular.z=ang_vel
 
                     # publish onto hb/cmd_vel
                     self.twist_pub.publish(self.twist_msg)
+                    self.trajectory.append([self.x, self.y])
                     self.rate.sleep()
 
                     #stop when reached target pose
                     if abs(angle_error)<=self.ang_thresh and abs(error_x)<=self.linear_thresh and abs(error_y)<=self.linear_thresh:
                         # self.stop()
                         print("reached goal pose: [{}, {}, {}]".format(self.x,  self.y, round(self.theta, 3)))
+                        
                         # rospy.sleep(0.5)
                         break
+        
+        # trajectory visualisation
+        print("Visualising the trajectory...")
+        frame=np.ones([500,500,3])
+
+        for i in range(len(self.trajectory)):
+
+            # blacken out the traversed pixels
+            frame[int(self.trajectory[i][1])][int(self.trajectory[i][0])]=0
+
+            cv2.imshow('trajectory', frame)
+            cv2.waitKey(1)
+            rospy.sleep(5/len(self.trajectory))
 
         rospy.loginfo("Task completed!")
+        cv2.destroyAllWindows()
+
+        rospy.signal_shutdown("Task completed")
 
     # get the waypoints
     def goal_callback(self, data):
@@ -107,7 +129,7 @@ class goToPose:
 
     # odometry callback             
     def odom_callback(self, msg):
-        self.x=msg.x
+        self.x=msg.x 
         self.y=msg.y
         self.theta=msg.theta
 

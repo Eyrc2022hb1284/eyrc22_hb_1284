@@ -11,7 +11,7 @@ from cv_bridge import CvBridge
 import cv2				
 import math	
 from geometry_msgs.msg import Pose2D
-from eyrc_hb_feed.src.feed_utils import detect_aruco
+from feed_utils import detect_aruco
 from feed_utils import getPose
 
 class Odom:

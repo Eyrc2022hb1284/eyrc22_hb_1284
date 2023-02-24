@@ -2,7 +2,7 @@
 
 '''
 Author: Debrup
-Purpose: This server recieves goals via a client and publishes instantaneous velocity of the robot
+Purpose: This script takes up waypoints from /contours ands publishes instantaneous velocity of the robot
 '''
 
 import rospy
@@ -23,7 +23,7 @@ class goToPose:
         self.theta=0
 
         # threshold params
-        self.linear_thresh=0
+        self.linear_thresh=1
         self.ang_thresh=0.1
 
         # goals
@@ -44,14 +44,15 @@ class goToPose:
         self.twist_pub=rospy.Publisher('hb/cmd_vel', Twist, queue_size=10)
         
         # pid params
-        self.params_linear={'Kp':0.5, 'Ki':0, 'Kd':0}
+        self.params_linear={'Kp':0.03125, 'Ki':0, 'Kd':0}
         self.params_ang={'Kp':1, 'Ki':0, 'Kd':0}
         self.intg={'vx':0, 'vy':0, 'w':0}
         self.last_error={'vx':0, 'vy':0, 'w':0}
 
         self.twist_msg=Twist()
-
-        while not rospy.is_shutdown():
+        
+        # synchronize the script
+        while True:
             if self.x_goals is not None and self.y_goals is not None and self.theta_goals is not None:
                 break
 
@@ -59,21 +60,20 @@ class goToPose:
         for i in range(len(self.x_goals)):
 
             self.x_goal=self.x_goals[i]
-            self.y_goal=500-self.y_goals[i]  #cartesian transformation
+            self.y_goal=self.y_goals[i] 
             self.theta_goal=self.theta_goals[i]
 
-            print("Goal: [{}, {}, {}]".format(self.x_goal, 500-self.y_goal, self.theta_goal))
+            print("Goal: [{}, {}, {}]".format(self.x_goal, self.y_goal, self.theta_goal))
 
-            while True:
+            while not rospy.is_shutdown():
                 if self.x==-1 and self.y==-1 and self.theta==4:
                     # print("aruco marker not detected")
                     self.stop()
-
                 else:
                     # error calculation
                     angle_error=self.theta_goal-self.theta
-                    error_x=(self.x_goal-self.x)*math.cos(self.theta)+(self.y_goal-self.y)*math.sin(self.theta)
-                    error_y=-(self.x_goal-self.x)*math.sin(self.theta)+(self.y_goal-self.y)*math.cos(self.theta)
+                    error_x=(self.x_goal-self.x)*math.cos(self.theta)+(self.y-self.y_goal)*math.sin(self.theta)
+                    error_y=-(self.x_goal-self.x)*math.sin(self.theta)+(self.y-self.y_goal)*math.cos(self.theta)
 
                     # velocity calculation
                     v_x, v_y=getLinearVel(error_x,  error_y, self.params_linear, self.linear_thresh, self.intg, self.last_error)
@@ -90,9 +90,9 @@ class goToPose:
 
                     #stop when reached target pose
                     if abs(angle_error)<=self.ang_thresh and abs(error_x)<=self.linear_thresh and abs(error_y)<=self.linear_thresh:
-                        # self.stop()
-                        print("reached goal pose: [{}, {}, {}]".format(self.x,  500-self.y, round(self.theta, 3)))
-                        # rospy.sleep(2)
+                        self.stop()
+                        print("reached goal pose: [{}, {}, {}]".format(self.x,  self.y, round(self.theta, 3)))
+                        rospy.sleep(0.5)
                         break
 
         rospy.loginfo("Task completed!")
@@ -108,7 +108,7 @@ class goToPose:
     # odometry callback             
     def odom_callback(self, msg):
         self.x=msg.x
-        self.y=500-msg.y #cartesian transformation
+        self.y=msg.y
         self.theta=msg.theta
 
     # bot halt function

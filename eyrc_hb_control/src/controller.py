@@ -7,8 +7,10 @@ Purpose: This server recieves goals via a client and publishes instantaneous vel
 
 import rospy
 from geometry_msgs.msg import Twist, Pose2D
+from std_msgs.msg import String
 import math
 from control_utils import *
+import ast
 
 class goToPose:
     def __init__(self):
@@ -21,13 +23,13 @@ class goToPose:
         self.theta=0
 
         # threshold params
-        self.linear_thresh=1
+        self.linear_thresh=0
         self.ang_thresh=0.1
 
         # goals
-        self.x_goals=[250, 350, 150, 150, 300]
-        self.y_goals=[250, 300, 300, 150, 150]
-        self.theta_goals=[0, 0.785, 2.355, -2.355, -0.785]
+        self.x_goals=None
+        self.y_goals=None
+        self.theta_goals=None
 
         # current goal
         self.x_goal=None
@@ -37,16 +39,21 @@ class goToPose:
         self.rate=rospy.Rate(75)
 
         # subscriber/publisher
+        self.goal_sub=rospy.Subscriber('/contours', String, self.goal_callback)
         self.odom_sub=rospy.Subscriber('hb/odom', Pose2D, self.odom_callback)
         self.twist_pub=rospy.Publisher('hb/cmd_vel', Twist, queue_size=10)
         
         # pid params
-        self.params_linear={'Kp':0.03125, 'Ki':0, 'Kd':0}
+        self.params_linear={'Kp':0.5, 'Ki':0, 'Kd':0}
         self.params_ang={'Kp':1, 'Ki':0, 'Kd':0}
         self.intg={'vx':0, 'vy':0, 'w':0}
         self.last_error={'vx':0, 'vy':0, 'w':0}
 
         self.twist_msg=Twist()
+
+        while not rospy.is_shutdown():
+            if self.x_goals is not None and self.y_goals is not None and self.theta_goals is not None:
+                break
 
         # control loop
         for i in range(len(self.x_goals)):
@@ -83,12 +90,20 @@ class goToPose:
 
                     #stop when reached target pose
                     if abs(angle_error)<=self.ang_thresh and abs(error_x)<=self.linear_thresh and abs(error_y)<=self.linear_thresh:
-                        self.stop()
+                        # self.stop()
                         print("reached goal pose: [{}, {}, {}]".format(self.x,  500-self.y, round(self.theta, 3)))
-                        rospy.sleep(2)
+                        # rospy.sleep(2)
                         break
 
         rospy.loginfo("Task completed!")
+
+    # get the waypoints
+    def goal_callback(self, data):
+        contours = ast.literal_eval(data.data)
+
+        self.x_goals=contours[0]
+        self.y_goals=contours[1]
+        self.theta_goals=contours[2]
 
     # odometry callback             
     def odom_callback(self, msg):

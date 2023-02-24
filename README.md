@@ -44,3 +44,12 @@ To start the stream of goals and the controller node(This runs the robot)
 ```sh
 rosrun eyrc-2022_holabot task2exe eyrc-2022_holabot
 ```
+To run the hola bot for functional plotting 
+```sh 
+roslaunch eyrc_hb_feed getOdom.launch 
+
+roslaunch eyrc_hb_feed getContours.py -m 0/1 -p {no of points}
+
+rosrun eyrc_hb_communication hola_transmitter.py 192.168.147.82 -p 44444  
+
+rosrun eyrc_hb_control controller.py

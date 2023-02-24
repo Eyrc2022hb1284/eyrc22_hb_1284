@@ -52,7 +52,7 @@ class TestContour:
 
             cv2.imshow('frame', frame)
             cv2.waitKey(1)
-            rospy.sleep(0.1)
+            rospy.sleep(5/len(self.x_goals))
 
         print("Trajectory visuaisation complete!")
         print("Some insights on the trajectory: ")

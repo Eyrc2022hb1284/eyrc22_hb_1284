@@ -10,11 +10,8 @@ def getAngVel(error, const, ang_thresh, intg_params, last_error_params):
         else:
             ang_vel = pid(error, const, intg_params['w'], last_error_params['w'], )
 
-        if ang_vel<0: ang_vel=-1.5
-        else: ang_vel=1.5
-
-    # else:
-    #     self.stop()
+        # if ang_vel<0: ang_vel=-3
+        # else: ang_vel=3
 
     return ang_vel
 
@@ -26,8 +23,6 @@ def getLinearVel(error_x,  error_y, const, linear_thresh, intg_params, last_erro
     if abs(error_x)>linear_thresh or abs(error_y)>linear_thresh:
         v_x=pid(error_x, const, intg_params['vx'], last_error_params['vx'])
         v_y=pid(error_y, const, intg_params['vy'], last_error_params['vy'])
-    # else:
-    #     self.stop()
 
     return v_x, v_y
 

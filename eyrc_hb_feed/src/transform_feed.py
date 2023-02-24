@@ -76,8 +76,8 @@ class PerspectiveTransform:
                 self.transfrom_img=self.bridge.cv2_to_imgmsg(self.feed, 'bgr8')
                 self.pt_pub.publish(self.transfrom_img)
                 
-                cv2.imshow('final_frame', self.feed)
-                cv2.waitKey(1)
+                # cv2.imshow('final_frame', self.feed)
+                # cv2.waitKey(1)
 
                 rospy.loginfo("Publishing feed...")
 

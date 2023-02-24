@@ -50,21 +50,15 @@ class PerspectiveTransform:
 
         self.ids, self.corners=detect_aruco(self.feed, self.dict, self.params)
 
-        # print(self.ids)
-        # print(self.corners)
-        
         if len(self.corners)!=0 and len(self.ids)!=0 and len(self.corners)==len(self.ids):
         
             curr_upperRight, curr_upperLeft, curr_bottomRight, curr_bottomLeft=extract_arena_corners(self.corners, self.ids, self.aruco_ids)
-
 
             # dont update corners if they arent detected
             if(curr_upperRight is not None): self.upperRight=curr_upperRight
             if(curr_upperLeft is not None): self.upperLeft=curr_upperLeft
             if(curr_bottomRight is not None): self.bottomRight=curr_bottomRight
             if(curr_bottomLeft is not None): self.bottomLeft=curr_bottomLeft
-
-            # print(self.upperRight, self.upperLeft, self.bottomRight, self.bottomLeft)
 
             if self.upperLeft is not None and self.upperRight is not None and self.bottomLeft is not None and self.bottomRight is not None:
 
@@ -76,9 +70,6 @@ class PerspectiveTransform:
                 self.transfrom_img=self.bridge.cv2_to_imgmsg(self.feed, 'bgr8')
                 self.pt_pub.publish(self.transfrom_img)
                 
-                # cv2.imshow('final_frame', self.feed)
-                # cv2.waitKey(1)
-
                 rospy.loginfo("Publishing feed...")
 
 if __name__=='__main__':

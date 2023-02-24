@@ -32,8 +32,7 @@ class getCountour:
 
         # if function mode
         elif args.mode == 1:
-            t=[0, 2*math.pi]
-            self.contour_msg=getContourMsg(t=t, points=args.points, mode=args.mode)
+            self.contour_msg=getContourMsg(points=args.points, mode=args.mode)
 
         else:
             rospy.loginfo("Imvalid mode!")

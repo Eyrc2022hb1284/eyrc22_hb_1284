@@ -57,13 +57,13 @@ def resize(img, w, h):
 	return cv2.resize(img, (w, h))
 
 # extract contour coordinates from image/function
-def getContourMsg(image=None, t=None, points=500, mode=None):
+def getContourMsg(image=None, points=500, mode=None):
 	if mode == 0:
 		print("...Image mode selected...")
 		contours=getContoursImg(image, points)
 	if mode == 1:
 		print("..Function mode selected...")
-		contours=getContoursFunc(t, points)
+		contours=getContoursFunc(points)
 
 	return contours
 
@@ -79,9 +79,12 @@ def getContoursImg(image, points):
 	return []
 
 # function plotting algo
-def getContoursFunc(t, points):
+def getContoursFunc(points):
+	t=[0, 2*math.pi]
+
 	t_low=t[0]
 	t_high=t[1]
+
 	x_goals=[]
 	y_goals=[]
 	theta_goals=[]

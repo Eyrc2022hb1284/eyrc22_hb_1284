@@ -13,7 +13,7 @@ from control_utils import *
 class goToPose:
     def __init__(self):
         # initalise node
-        rospy.init_node('error_pub')
+        rospy.init_node('go_to_goal')
 
         # pose params
         self.x=0

@@ -2,7 +2,7 @@
 
 '''
 Author: Debrup
-Purpose: This script takes up waypoints from /contours ands publishes instantaneous velocity of the robot
+Purpose: This script takes up waypoints from /contours and publishes instantaneous velocity of the robot
 '''
 
 import rospy
@@ -15,7 +15,7 @@ import ast
 class goToPose:
     def __init__(self):
         # initalise node
-        rospy.init_node('error_pub')
+        rospy.init_node('controller')
 
         # pose params
         self.x=0
@@ -90,9 +90,9 @@ class goToPose:
 
                     #stop when reached target pose
                     if abs(angle_error)<=self.ang_thresh and abs(error_x)<=self.linear_thresh and abs(error_y)<=self.linear_thresh:
-                        self.stop()
+                        # self.stop()
                         print("reached goal pose: [{}, {}, {}]".format(self.x,  self.y, round(self.theta, 3)))
-                        rospy.sleep(0.5)
+                        # rospy.sleep(0.5)
                         break
 
         rospy.loginfo("Task completed!")

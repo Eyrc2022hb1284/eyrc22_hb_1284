@@ -69,14 +69,42 @@ def getContourMsg(image=None, points=500, mode=None):
 
 # contour extraction algo
 def getContoursImg(image, points):
-	gray=cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-	kernel=cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
-	eroded=cv2.erode(gray, kernel, iterations=1)
-	dilated=cv2.dilate(eroded, kernel, iterations=1)
+	# Convert to grayscale
+	gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-	cv2.imshow('frame', dilated)
-	cv2.waitKey(0)
-	return []
+	# Threshold the image
+	thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
+
+	# Apply morphological closing operation to fill in gaps in the lines
+	kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3,3))
+	closed = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
+
+	# Dilate the image to make the lines thicker
+	kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (7,7))
+	dilated = cv2.dilate(closed, kernel, iterations=1)
+
+	# Find the contours in the image
+	contours, hierarchy = cv2.findContours(dilated, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
+	
+	outer_contours=[]
+	# Extract the contours who dont have a parent
+	for i in range(len(contours)):
+		if hierarchy[0][i][3] == -1:
+			outer_contours.append(contours[i])
+
+	# cv2.drawContours(image, outer_contours, -1, (0, 255, 0), 1)
+	# cv2.imshow('frame', image)
+	# cv2.waitKey(0)
+
+	# extract x and y goals into 2 separate lists
+	x_goals, y_goals=splitContours(outer_contours)
+	theta_goals=[]
+
+	# generate theta goals
+	for i in range(len(x_goals)):
+		theta_goals.append([0]*len(x_goals[i]))
+	
+	return [x_goals, y_goals, theta_goals]
 
 # function plotting algo
 def getContoursFunc(points):
@@ -85,25 +113,70 @@ def getContoursFunc(points):
 	t_low=t[0]
 	t_high=t[1]
 
-	x_goals=[]
-	y_goals=[]
+	contours=[]
+	contour=[]
 	theta_goals=[]
+	single_contour_theta_goals=[]
 
 	for i in range(points):
 		curr_t=t_low+i*(t_high-t_low)/points
+
+		# get current pixel
 		x_goal, y_goal, theta_goal=getCurrGoal(curr_t)
 
-		x_goals.append(int(x_goal)+250) #linear transformation
-		y_goals.append(500-(int(y_goal)+250)) #linear transformation followed by conversion to openCV corrdinate
-		theta_goals.append(theta_goal)
+		x_goal=int(x_goal)+250 #linear transformation
+		y_goal=500-(int(y_goal)+250) #linear transformation followed by conversion to openCV corrdinate
 
+		# if contour is empty or incoming pixel is close to the previous one, add them into the same contour
+		if len(contour)==0 or isPxNearby(contour[-1][0], [x_goal, y_goal]):
+			contour.append([[x_goal, y_goal]])
+			single_contour_theta_goals.append(theta_goal)
+
+		# else store the current contour, and insert the pixel into a new contour
+		else:
+			contours.append[contour]
+			theta_goals.append(single_contour_theta_goals)
+
+			contour.clear()
+			single_contour_theta_goals.clear()
+
+			contour.append([[x_goal, y_goal]])
+			single_contour_theta_goals.append(theta_goal)
+
+	# append the last contour
+	contours.append(contour)
+	theta_goals.append(single_contour_theta_goals)
+
+	# print(contours)
+	# extract x and y goals into 2 separate lists
+	x_goals, y_goals=splitContours(contours)
+
+	# print(x_goals, y_goals, theta_goals)
 	return [x_goals, y_goals, theta_goals]
 
 # generate goals wrt time
 def getCurrGoal(curr_t):
 	return 200*math.cos(curr_t), 100*math.sin(2*curr_t), (math.pi/4)*math.sin(curr_t)
 
+# returns a true value if any one pixel coordinate is closer than 10 pixels from the other
+def isPxNearby(pixelA, pixelB):
+	return abs(pixelA[0]-pixelB[0])<10 and abs(pixelA[1]-pixelB[1])<10
 
+def splitContours(contours):
+	x_goals=[]
+	y_goals=[]
 
+	# split contours([[[x, y]..,[]],[]...,[]]) to extract x_goals([[x1, x2, ...],[]...,[]) and y_goals([[y1,y2...],[]...,[]])
+	for contour in contours:
+		x_goal=[]
+		y_goal=[]
+		for i in range(len(contour)):
+			x_goal.append(contour[i][0][0])
+			y_goal.append(contour[i][0][1])
+		
+		x_goals.append(x_goal)
+		y_goals.append(y_goal)
+	
+	return x_goals, y_goals
 
 

@@ -62,6 +62,8 @@ class PerspectiveTransform:
 
             if self.upperLeft is not None and self.upperRight is not None and self.bottomLeft is not None and self.bottomRight is not None:
 
+                # print(self.upperRight, self.upperLeft, self.bottomRight, self.bottomLeft)
+
                 arena_corners=np.float32([self.upperLeft, self.upperRight, self.bottomLeft, self.bottomRight])
                 
                 # perspective transform

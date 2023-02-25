@@ -1,3 +1,8 @@
+'''
+Author: Debrup
+Utility file for the transmitter script
+'''
+
 import math
 
 
@@ -10,6 +15,7 @@ def getWheelVel(vx, vy, w, d, r):
 
         return fw, lw, rw
 
+# converts wheel velocities into rpm and clips it incase it exceeds 196 RPM
 def Vel2RPM(fw_vel, lw_vel, rw_vel):
     fw_rpm=fw_vel*30/math.pi
     lw_rpm=lw_vel*30/math.pi

@@ -1,23 +1,32 @@
 #!/usr/bin/env python3
 
+'''
+Author: Debrup
+This script takes up velocities published by controller.py on hb/cmd_vel, converts them into rpm and then transmits it to the HolA bot
+'''
+
 import argparse
 import socket
 from communication_utils import *
 import rospy
 from geometry_msgs.msg import Twist
-from std_msgs.msg import Int8
+from std_msgs.msg import String
 
 class Transmitter:
     def __init__(self, args):
         rospy.init_node('transmitter')
+
+        # rate
         rate = rospy.Rate(75)
+
+        # variables that store RPM
         self.fw_rpm=0
         self.lw_rpm=0
         self.rw_rpm=0
         self.servo_angle = 150
 
         self.sub = rospy.Subscriber('hb/cmd_vel', Twist, self.callback)
-        rospy.Subscriber('/penstatus', Int8, self.callback_servo)
+        rospy.Subscriber('/penstatus', String, self.callback_servo)
 
 
         # socket object
@@ -39,11 +48,14 @@ class Transmitter:
         self.fw_rpm, self.lw_rpm, self.rw_rpm=Vel2RPM(fw_vel, lw_vel, rw_vel) 
 
 
-    def callback_servo(self, data):
-        if(data ==1):
-            self.servo_angle=100
+    def callback_servo(self, msg):
+      
+        # num=Int8()
+        # num.data1=1
+        if msg.data == "1":
+            self.servo_angle=85
         else:
-            self.serv0_angle=150      
+            self.servo_angle=150      
 
 if __name__ == '__main__':
 
@@ -56,6 +68,7 @@ if __name__ == '__main__':
     rospy.loginfo("host: %s, port: %s", args.ip, args.port)
 
     tm = Transmitter(args)
+    
     try:
         if not rospy.is_shutdown():
             rospy.spin()

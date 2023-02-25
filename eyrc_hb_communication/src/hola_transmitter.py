@@ -5,6 +5,7 @@ import socket
 from communication_utils import *
 import rospy
 from geometry_msgs.msg import Twist
+from std_msgs.msg import Int8
 
 class Transmitter:
     def __init__(self, args):
@@ -13,15 +14,18 @@ class Transmitter:
         self.fw_rpm=0
         self.lw_rpm=0
         self.rw_rpm=0
+        self.servo_angle = 150
 
         self.sub = rospy.Subscriber('hb/cmd_vel', Twist, self.callback)
+        rospy.Subscriber('/penstatus', Int8, self.callback_servo)
+
 
         # socket object
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
         while not rospy.is_shutdown():
             
-            msg = "{},{},{},0\r".format(self.fw_rpm,self.rw_rpm,self.lw_rpm)
+            msg = "{},{},{},{}\r".format(self.fw_rpm,self.rw_rpm,self.lw_rpm,self.servo_angle)
             self.sock.sendto(str.encode(msg), (args.ip, args.port))
             print("Data sent: {}".format(msg))
             
@@ -32,7 +36,14 @@ class Transmitter:
         fw_vel, lw_vel, rw_vel=getWheelVel(data.linear.x, data.linear.y, data.angular.z, d=0.105, r=0.029)
 
         # convert m/s to rpm
-        self.fw_rpm, self.lw_rpm, self.rw_rpm=Vel2RPM(fw_vel, lw_vel, rw_vel)         
+        self.fw_rpm, self.lw_rpm, self.rw_rpm=Vel2RPM(fw_vel, lw_vel, rw_vel) 
+
+
+    def callback_servo(self, data):
+        if(data ==1):
+            self.servo_angle=100
+        else:
+            self.serv0_angle=150      
 
 if __name__ == '__main__':
 

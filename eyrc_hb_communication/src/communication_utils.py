@@ -1,5 +1,7 @@
 import math
 
+
+
 def getWheelVel(vx, vy, w, d, r):
     
         fw=(-d*w+vx)/r
@@ -19,9 +21,11 @@ def Vel2RPM(fw_vel, lw_vel, rw_vel):
         fw_rpm=float(fw_rpm)/max_rpm_magnitude*196
         lw_rpm=float(lw_rpm)/max_rpm_magnitude*196
         rw_rpm=float(rw_rpm)/max_rpm_magnitude*196
+      
 
 
     return int(fw_rpm), int(lw_rpm), int(rw_rpm)
 
 #     if(rpm>=0): return min(int(rpm), 200)
 #     else: return max(int(rpm), -200)
+

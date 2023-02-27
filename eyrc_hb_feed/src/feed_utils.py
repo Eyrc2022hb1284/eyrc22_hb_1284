@@ -72,37 +72,23 @@ def getContoursImg(image, points):
 	# Convert to grayscale
 	gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-	# Threshold the image
+	# # Threshold the image
 	thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
 
-	# Apply morphological closing operation to fill in gaps in the lines
-	kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3,3))
-	closed = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
-
-	# Dilate the image to make the lines thicker
-	kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (7,7))
-	dilated = cv2.dilate(closed, kernel, iterations=1)
-
 	# Find the contours in the image
-	contours, hierarchy = cv2.findContours(dilated, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
+	contours, hierarchy = cv2.findContours(thresh, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
 	
-	outer_contours=[]
+	waypoints=[]
 	# Extract the contours who dont have a parent
 	for i in range(len(contours)):
 		if hierarchy[0][i][3] == -1:
-			outer_contours.append(contours[i])
+			waypoints.append(contours[i].tolist())
 
-	# cv2.drawContours(image, outer_contours, -1, (0, 255, 0), 1)
-	# cv2.imshow('frame', image)
-	# cv2.waitKey(0)
+	# add theta to each pixel to convert it to a waypoint
+	waypoints=addTheta(waypoints)
 
-	# extract x and y goals into 2 separate lists
-	x_goals, y_goals=splitContours(outer_contours)
-	theta_goals=[]
-
-	# generate theta goals
-	for i in range(len(x_goals)):
-		theta_goals.append([0]*len(x_goals[i]))
+	# extract x, y, theta goals into 3 separate lists
+	x_goals, y_goals, theta_goals=splitContours(waypoints)
 	
 	return [x_goals, y_goals, theta_goals]
 
@@ -114,9 +100,6 @@ def getContoursFunc(points):
 	t_high=t[1]
 
 	contours=[]
-	contour=[]
-	theta_goals=[]
-	single_contour_theta_goals=[]
 
 	for i in range(points):
 		curr_t=t_low+i*(t_high-t_low)/points
@@ -127,29 +110,12 @@ def getContoursFunc(points):
 		x_goal=int(x_goal)+250 #linear transformation
 		y_goal=500-(int(y_goal)+250) #linear transformation followed by conversion to openCV corrdinate
 
-		# if contour is empty or incoming pixel is close to the previous one, add them into the same contour
-		if len(contour)==0 or isPxNearby(contour[-1][0], [x_goal, y_goal]):
-			contour.append([[x_goal, y_goal]])
-			single_contour_theta_goals.append(theta_goal)
+		contours.append([[x_goal, y_goal, theta_goal]])
 
-		# else store the current contour, and insert the pixel into a new contour
-		else:
-			contours.append[contour]
-			theta_goals.append(single_contour_theta_goals)
-
-			contour.clear()
-			single_contour_theta_goals.clear()
-
-			contour.append([[x_goal, y_goal]])
-			single_contour_theta_goals.append(theta_goal)
-
-	# append the last contour
-	contours.append(contour)
-	theta_goals.append(single_contour_theta_goals)
-
-	# print(contours)
+	contours=getMultipleContours(contours, 20)
+	
 	# extract x and y goals into 2 separate lists
-	x_goals, y_goals=splitContours(contours)
+	x_goals, y_goals, theta_goals=splitContours(contours)
 
 	# print(x_goals, y_goals, theta_goals)
 	return [x_goals, y_goals, theta_goals]
@@ -158,25 +124,109 @@ def getContoursFunc(points):
 def getCurrGoal(curr_t):
 	return 200*math.cos(curr_t), 100*math.sin(2*curr_t), (math.pi/4)*math.sin(curr_t)
 
+# edits the array of contours-adds a third element to each pixel that acts as theta input
+def addTheta(contours):
+	for contour in contours:
+		for i in range(len(contour)):
+			contour[i][0].append(0)
+			# print(contour[i][0])
+
+	return contours
+
 # returns a true value if any one pixel coordinate is closer than 10 pixels from the other
-def isPxNearby(pixelA, pixelB):
-	return abs(pixelA[0]-pixelB[0])<10 and abs(pixelA[1]-pixelB[1])<10
+def isPxNearby(pixelA, pixelB, thresh):
+	return abs(pixelA[0]-pixelB[0])<thresh and abs(pixelA[1]-pixelB[1])<thresh
 
 def splitContours(contours):
 	x_goals=[]
 	y_goals=[]
+	theta_goals=[]
 
-	# split contours([[[x, y]..,[]],[]...,[]]) to extract x_goals([[x1, x2, ...],[]...,[]) and y_goals([[y1,y2...],[]...,[]])
+	# split contours([[[x, y, theta]..,[]],[]...,[]]) to extract x_goals([[x1, x2, ...],[]...,[]), y_goals([[y1,y2...],[]...,[]]) and thata_goals([[theta1,theta2...],[]...,[]])
 	for contour in contours:
 		x_goal=[]
 		y_goal=[]
+		theta_goal=[]
 		for i in range(len(contour)):
+			# print(contour[i])
 			x_goal.append(contour[i][0][0])
 			y_goal.append(contour[i][0][1])
+			theta_goal.append(contour[i][0][2])
 		
 		x_goals.append(x_goal)
 		y_goals.append(y_goal)
+		theta_goals.append(theta_goal)
 	
-	return x_goals, y_goals
+	return x_goals, y_goals, theta_goals
 
+def fillContours(contours, thresh):
+	for contour in contours:
+		i=0
+		while i < len(contour):
+			if i==len(contour)-1: break
+
+			curr_px=contour[i][0]
+			next_px=contour[i+1][0]
+
+			if (abs(curr_px[0]-next_px[0])>thresh) or (abs(curr_px[1]-next_px[1])>thresh):
+				new_x=int((curr_px[0]+next_px[0])/2)
+				new_y=int((curr_px[1]+next_px[1])/2)
+				new_px=np.array([[new_x, new_y]])
+				
+				# new_px=new_px.reshape(1,2)
+
+				slobj = slice(0, i+1)
+				# print(slobj)
+
+				# print(new_px.shape, contour[0].shape)
+				
+				# contour[slobj] = new_px
+				# # i-=1
+				# print(contour[i+1])
+				contour=np.insert(slobj, new_px)
+				# i-=1
+			i+=1
+
+	return contours
+
+# this function draws the contours then extracts all the drawn pixels to form a denser set of waypoints
+def improveContours(contours):
+	frame=np.ones([500, 500, 3])
+	frame=cv2.drawContours(frame, contours, -1, (0, 0, 0), 1)
+	contours.clear()
+
+	width, height, _=frame.shape
+
+	for w in range(width):
+		for h in range(height):
+			# print(frame[w][h])
+			if(frame[h][w][0]==0): 
+				# print(h, w)
+				contours.append([[w, h, 0]]) #last 0 being appended is the theta goal
+
+	return contours
+
+# this function splits a series of waypoints into separate contours
+def getMultipleContours(contours, thresh):
+	contour=[]
+	separated_contours=[]
+
+	for  i in range(len(contours)):
+		curr_px=contours[i][0]
+
+		# if contour is empty or incoming pixel is close to the previous one, add them into the same contour
+		if len(contour)==0:
+			contour.append([curr_px])
+		elif isPxNearby(contour[-1][0], curr_px, thresh):
+			contour.append([curr_px])
+		# else store the current contour, clear it and insert the current pixel
+		else:
+			separated_contours.append(contour)
+			contour.clear()
+			contour.append([curr_px])
+
+	# append the last contour
+	if(len(contour)!=0): separated_contours.append(contour)
+
+	return separated_contours
 

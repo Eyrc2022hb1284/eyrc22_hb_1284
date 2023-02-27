@@ -67,7 +67,7 @@ class TestContour:
 
                 cv2.imshow('frame', frame)
                 cv2.waitKey(1)
-                rospy.sleep(0.01)
+                rospy.sleep(0.001)
 
             print(''' Number of waypoints: {}
             Max px gap along x axis: {}

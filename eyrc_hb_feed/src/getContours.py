@@ -10,7 +10,6 @@ import argparse
 from std_msgs.msg import String
 import cv2
 from feed_utils import resize, getContourMsg
-import math
 
 class getCountour:
     def __init__(self, args):

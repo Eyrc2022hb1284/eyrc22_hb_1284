@@ -38,11 +38,9 @@ class getCountour:
             rospy.signal_shutdown("Wrong user input")
 
         while not rospy.is_shutdown():
-            # print(self.contour_msg)
             self.pub.publish(str(self.contour_msg))
             rospy.loginfo("Waypoints published!")
             self.rate.sleep()
-            # rospy.signal_shutdown("Contours published!")
 
 
 if __name__=='__main__':

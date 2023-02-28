@@ -72,7 +72,7 @@ def getContoursImg(image, points):
 	# Convert to grayscale
 	gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-	# # Threshold the image
+	# Threshold the image
 	thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
 
 	# Find the contours in the image
@@ -124,7 +124,7 @@ def getContoursFunc(points):
 def getCurrGoal(curr_t):
 	return 200*math.cos(curr_t), 100*math.sin(2*curr_t), (math.pi/4)*math.sin(curr_t)
 
-# edits the array of contours-adds a third element to each pixel that acts as theta input
+# edits the array of contours-adds a third element to each pixel that acts as theta(0 for every waypoint) input
 def addTheta(contours):
 	for contour in contours:
 		for i in range(len(contour)):

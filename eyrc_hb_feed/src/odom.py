@@ -13,13 +13,14 @@ import math
 from geometry_msgs.msg import Pose2D
 from feed_utils import detect_aruco
 from feed_utils import getPose
+from eyrc_hb_feed.msg import aruco_data
 
 class Odom:
 	def __init__(self):
 		rospy.init_node('odom')  
 
 		self.bridge=CvBridge()
-		self.pose_msg = Pose2D()
+		self.pose_msg = aruco_data()
 
 		# load the dictionary that was used to generate the markers
 		self.dict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_1000)
@@ -35,7 +36,7 @@ class Odom:
 		self.bot_aruco_corners=[]
 		
 		rospy.Subscriber('hb/cam_feed', Image, self.callback)
-		self.pub = rospy.Publisher('hb/odom', Pose2D, queue_size=10)
+		self.pub = rospy.Publisher('hb/odom', aruco_data, queue_size=10)
 
 		while not rospy.is_shutdown():
 			if self.frame is None: continue

@@ -26,10 +26,10 @@ class PerspectiveTransform:
         self.aruco_ids=[12, 4, 10, 8] #aruco ids present in the arena corners
 
         # Perspective Transform params
-        self.upperRight=None
-        self.upperLeft=None
-        self.bottomRight=None
-        self.bottomLeft=None
+        self.upperRight=[397, 86]
+        self.upperLeft=[98, 88]
+        self.bottomRight=[395, 430]
+        self.bottomLeft=[98, 424]
 
         # feed params
         self.feed=None
@@ -50,33 +50,29 @@ class PerspectiveTransform:
 
         self.ids, self.corners=detect_aruco(self.feed, self.dict, self.params)
 
-        if len(self.corners)!=0 and len(self.ids)!=0 and len(self.corners)==len(self.ids):
+        # if len(self.corners)!=0 and len(self.ids)!=0 and len(self.corners)==len(self.ids):
         
-            curr_upperRight, curr_upperLeft, curr_bottomRight, curr_bottomLeft=extract_arena_corners(self.corners, self.ids, self.aruco_ids)
+        curr_upperRight, curr_upperLeft, curr_bottomRight, curr_bottomLeft=extract_arena_corners(self.corners, self.ids, self.aruco_ids)
 
-            # dont update corners if they arent detected
-            if(curr_upperRight is not None): self.upperRight=[545 , 34] 
-            #curr_upperRight = 545 , 34 
-            if(curr_upperLeft is None): self.upperLeft=[131,40]
-            #curr_upperLeft  = 131 , 40 
-            if(curr_bottomRight is  None): self.bottomRight=[535,439]
-            #curr_bottomRight = 535 , 439 
-            if(curr_bottomLeft is None): self.bottomLeft=[140,433]
-            #curr_bottomLeft = 140 ,433 
+        # dont update corners if they arent detected
+        if(curr_upperRight is not None): self.upperRight=curr_upperRight
+        if(curr_upperLeft is not None): self.upperLeft=curr_upperLeft
+        if(curr_bottomRight is not None): self.bottomRight=curr_bottomRight
+        if(curr_bottomLeft is not None): self.bottomLeft=curr_bottomLeft
 
-            if self.upperLeft is not None and self.upperRight is not None and self.bottomLeft is not None and self.bottomRight is not None:
+        if self.upperLeft is not None and self.upperRight is not None and self.bottomLeft is not None and self.bottomRight is not None:
 
-                # print(self.upperRight, self.upperLeft, self.bottomRight, self.bottomLeft)
+            # print(self.upperRight, self.upperLeft, self.bottomRight, self.bottomLeft)
 
-                arena_corners=np.float32([self.upperLeft, self.upperRight, self.bottomLeft, self.bottomRight])
-                
-                # perspective transform
-                self.feed=perspectiveTransform(self.feed, arena_corners, self.final_feed_corners)
+            arena_corners=np.float32([self.upperLeft, self.upperRight, self.bottomLeft, self.bottomRight])
+            
+            # perspective transform
+            self.feed=perspectiveTransform(self.feed, arena_corners, self.final_feed_corners)
 
-                self.transfrom_img=self.bridge.cv2_to_imgmsg(self.feed, 'bgr8')
-                self.pt_pub.publish(self.transfrom_img)
-                
-                rospy.loginfo("Publishing feed...")
+            self.transfrom_img=self.bridge.cv2_to_imgmsg(self.feed, 'bgr8')
+            self.pt_pub.publish(self.transfrom_img)
+            
+            rospy.loginfo("Publishing feed...")
 
 if __name__=='__main__':
     pt=PerspectiveTransform()

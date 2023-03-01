@@ -10,6 +10,7 @@ import socket
 from communication_utils import *
 import rospy
 from geometry_msgs.msg import Twist
+from std_msgs.msg import String
 
 class Transmitter:
     def __init__(self, args):
@@ -22,18 +23,18 @@ class Transmitter:
         self.fw_rpm=0
         self.lw_rpm=0
         self.rw_rpm=0
-        
-        # subscriber
+        self.servo_angle = 150
+
         self.sub = rospy.Subscriber('hb/cmd_vel', Twist, self.callback)
+        rospy.Subscriber('/penstatus', String, self.callback_servo)
+
 
         # socket object
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
         while not rospy.is_shutdown():
             
-            # generate message
-            msg = "{},{},{},0\r".format(self.fw_rpm,self.rw_rpm,self.lw_rpm)
-            # message transmission
+            msg = "{},{},{},{}\r".format(self.fw_rpm,self.rw_rpm,self.lw_rpm,self.servo_angle)
             self.sock.sendto(str.encode(msg), (args.ip, args.port))
             print("Data sent: {}".format(msg))
             
@@ -43,8 +44,18 @@ class Transmitter:
 
         fw_vel, lw_vel, rw_vel=getWheelVel(data.linear.x, data.linear.y, data.angular.z, d=0.105, r=0.029)
 
-        # convert wheel velocity to RPM
-        self.fw_rpm, self.lw_rpm, self.rw_rpm=Vel2RPM(fw_vel, lw_vel, rw_vel)         
+        # convert m/s to rpm
+        self.fw_rpm, self.lw_rpm, self.rw_rpm=Vel2RPM(fw_vel, lw_vel, rw_vel) 
+
+
+    def callback_servo(self, msg):
+      
+        # num=Int8()
+        # num.data1=1
+        if msg.data == "1":
+            self.servo_angle=85
+        else:
+            self.servo_angle=150      
 
 if __name__ == '__main__':
 

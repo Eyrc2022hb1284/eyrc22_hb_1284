@@ -6,7 +6,7 @@ Purpose: This script takes up waypoints from /contours and publishes instantaneo
 '''
 
 import rospy
-from geometry_msgs.msg import Twist, Pose2D
+from geometry_msgs.msg import Twist
 from std_msgs.msg import String
 import math
 from control_utils import *
@@ -14,6 +14,7 @@ import ast
 import cv2
 import numpy as np
 from std_msgs.msg import Int32
+from eyrc_hb_feed.msg import aruco_data
 
 class goToPose:
     def __init__(self):
@@ -49,7 +50,7 @@ class goToPose:
 
         # subscriber/publisher
         self.goal_sub=rospy.Subscriber('/contours', String, self.goal_callback)
-        self.odom_sub=rospy.Subscriber('hb/odom', Pose2D, self.odom_callback)
+        self.odom_sub=rospy.Subscriber('hb/odom', aruco_data, self.odom_callback)
         self.task_stat_sub=rospy.Subscriber('/taskStatus', Int32, self.task_stat_callback)
         self.twist_pub=rospy.Publisher('hb/cmd_vel', Twist, queue_size=10)
         self.pen_status_pub=rospy.Publisher('/penStatus', Int32, queue_size=1)

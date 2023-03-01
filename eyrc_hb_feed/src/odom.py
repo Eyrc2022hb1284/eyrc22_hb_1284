@@ -9,8 +9,6 @@ import rospy
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 import cv2				
-import math	
-from geometry_msgs.msg import Pose2D
 from feed_utils import detect_aruco
 from feed_utils import getPose
 from eyrc_hb_feed.msg import aruco_data
@@ -72,7 +70,6 @@ class Odom:
 	def callback(self, data):
 		# recieves the feed
 		self.frame = self.bridge.imgmsg_to_cv2(data, "mono8")
-
 
 if __name__ == '__main__':
     od=Odom()

@@ -41,17 +41,12 @@ class Transmitter:
             rate.sleep()
 
     def callback(self, data):
-
         fw_vel, lw_vel, rw_vel=getWheelVel(data.linear.x, data.linear.y, data.angular.z, d=0.105, r=0.029)
-
         # convert m/s to rpm
         self.fw_rpm, self.lw_rpm, self.rw_rpm=Vel2RPM(fw_vel, lw_vel, rw_vel) 
 
 
     def callback_servo(self, msg):
-      
-        # num=Int8()
-        # num.data1=1
         if msg.data == "1":
             self.servo_angle=85
         else:

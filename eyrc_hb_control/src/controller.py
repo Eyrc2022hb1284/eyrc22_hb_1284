@@ -13,12 +13,16 @@ from control_utils import *
 import ast
 import cv2
 import numpy as np
-from std_msgs.msg import std_msgs
+from std_msgs.msg import Int32
 
 class goToPose:
     def __init__(self):
         # initalise node
         rospy.init_node('controller')
+
+        # task status variable
+        self.task_status=1
+        self.pen_status=0
 
         # pose params
         self.x=0
@@ -26,7 +30,7 @@ class goToPose:
         self.theta=0
 
         # threshold params
-        self.linear_thresh=3
+        self.linear_thresh=1
         self.ang_thresh=0.1
 
         # goals
@@ -46,11 +50,12 @@ class goToPose:
         # subscriber/publisher
         self.goal_sub=rospy.Subscriber('/contours', String, self.goal_callback)
         self.odom_sub=rospy.Subscriber('hb/odom', Pose2D, self.odom_callback)
+        self.task_stat_sub=rospy.Subscriber('/taskStatus', Int32, self.task_stat_callback)
         self.twist_pub=rospy.Publisher('hb/cmd_vel', Twist, queue_size=10)
-        self.int_pub=rospy.Publisher('/penstatus', String, queue_size=1)
+        self.pen_status_pub=rospy.Publisher('/penStatus', Int32, queue_size=1)
         
         # pid params
-        self.params_linear={'Kp':0.06, 'Ki':0, 'Kd':0}
+        self.params_linear={'Kp':0.05, 'Ki':0, 'Kd':0}
         self.params_ang={'Kp':5, 'Ki':0, 'Kd':0}
         self.intg={'vx':0, 'vy':0, 'w':0}
         self.last_error={'vx':0, 'vy':0, 'w':0}
@@ -73,8 +78,7 @@ class goToPose:
                 print("Goal: [{}, {}, {}]".format(self.x_goal, self.y_goal, self.theta_goal))
 
                 while not rospy.is_shutdown():
-                    if self.x==-1 and self.y==-1 and self.theta==4:
-                        # print("aruco marker not detected")
+                    if self.x==-1 and self.y==-1 and self.theta==4 or self.task_status==1:
                         self.stop()
                     else:
                         # error calculation
@@ -93,36 +97,34 @@ class goToPose:
 
                         # publish onto hb/cmd_vel
                         self.twist_pub.publish(self.twist_msg)
-                        self.trajectory.append([self.x, self.y])
+                        # consider odom of the bot as a part of the trajectory only when pen is down
+                        if self.pen_status==1: 
+                            self.trajectory.append([self.x, self.y])
                         self.rate.sleep()
 
                         #stop when reached target pose
                         if abs(angle_error)<=self.ang_thresh and abs(error_x)<=self.linear_thresh and abs(error_y)<=self.linear_thresh:
-                            # self.stop()
                             print("reached goal pose: [{}, {}, {}]".format(self.x,  self.y, round(self.theta, 3)))
-                            
-                            # rospy.sleep(0.5)
+                            # if first point of trajectory, pen down
+                            if j==0: 
+                                self.stop()
+                                self.pen_status_pub.publish(1)
+                                self.pen_status=1
+                                rospy.sleep(0.5)
+                            # if last point of trajectory, pen up
+                            if j==len(self.x_goals[i])-1: 
+                                self.stop()
+                                self.pen_status_pub.publish(0)
+                                self.pen_status=0
+                                rospy.sleep(0.5)
+
                             break
         
-        #servo_up
-        self.int_pub.publish("0")
-
         # trajectory visualisation
         print("Visualising the trajectory...")
-        frame=np.ones([500,500,3])
-
-        for i in range(len(self.trajectory)):
-
-            # blacken out the traversed pixels
-            frame[int(self.trajectory[i][1])][int(self.trajectory[i][0])]=0
-
-            cv2.imshow('trajectory', frame)
-            cv2.waitKey(1)
-            rospy.sleep(5/len(self.trajectory))
-
+        visualiseTrajectory(self.trajectory)
+        
         rospy.loginfo("Task completed!")
-        cv2.destroyAllWindows()
-
         rospy.signal_shutdown("Task completed")
 
     # get the waypoints
@@ -138,6 +140,10 @@ class goToPose:
         self.x=msg.x 
         self.y=msg.y
         self.theta=msg.theta
+
+    # updates the task status variable
+    def task_stat_callback(self, data):
+        self.task_status=data.data
 
     # bot halt function
     def stop(self):

@@ -24,7 +24,7 @@ class FeedUndistort:
         self.pub=rospy.Publisher('hb/image_undist', Image, queue_size=10)
 
         # load undistorting parameters
-        with open("/home/aman/hola_ws/src/eyrc_hb_feed/params/undist_params.p", 'rb') as file:
+        with open("/home/kratos/cyborg_ws/src/eyrc_2022_hb/eyrc_hb_feed/params/undist_params.p", 'rb') as file:
             self.dist_param = pickle.load(file)
 
 

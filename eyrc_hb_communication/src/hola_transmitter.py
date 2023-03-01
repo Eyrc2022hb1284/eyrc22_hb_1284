@@ -10,7 +10,7 @@ import socket
 from communication_utils import *
 import rospy
 from geometry_msgs.msg import Twist
-from std_msgs.msg import String
+from std_msgs.msg import Int32
 
 class Transmitter:
     def __init__(self, args):
@@ -23,10 +23,10 @@ class Transmitter:
         self.fw_rpm=0
         self.lw_rpm=0
         self.rw_rpm=0
-        self.servo_angle = 150
+        self.servo_angle = 90
 
         self.sub = rospy.Subscriber('hb/cmd_vel', Twist, self.callback)
-        rospy.Subscriber('/penstatus', String, self.callback_servo)
+        rospy.Subscriber('/penStatus', Int32, self.callback_servo)
 
 
         # socket object
@@ -47,7 +47,7 @@ class Transmitter:
 
 
     def callback_servo(self, msg):
-        if msg.data == "1":
+        if msg.data == 1:
             self.servo_angle=85
         else:
             self.servo_angle=150      

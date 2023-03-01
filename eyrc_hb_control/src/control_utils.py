@@ -1,3 +1,7 @@
+import numpy as np
+import rospy
+import cv2
+
 # angular pid function
 def getAngVel(error, const, ang_thresh, intg_params, last_error_params):
     ang_vel=0
@@ -34,3 +38,18 @@ def pid(error, const, intg, last_error):
         last_error = error
 
         return balance
+
+def visualiseTrajectory(trajectory):
+    frame=np.ones([500,500,3])
+
+    for i in range(len(trajectory)):
+
+        # blacken out the traversed pixels
+        frame[int(trajectory[i][1])][int(trajectory[i][0])]=0
+
+        cv2.imshow('trajectory', frame)
+        cv2.waitKey(1)
+        rospy.sleep(5/len(trajectory))
+
+    cv2.destroyAllWindows()
+    

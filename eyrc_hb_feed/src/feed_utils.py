@@ -1,6 +1,5 @@
 import cv2
 import math
-import numpy as np
 
 #detects the presence of aruco markers in the cam feed and returns the coordinates of the corners
 def detect_aruco(aruco_frame, dict, params):
@@ -56,11 +55,21 @@ def getPose(corners):
 def resize(img, w, h):
 	return cv2.resize(img, (w, h))
 
-# extract contour coordinates from image/function
-def getContourMsg(image=None, points=500, mode=None):
+# constructs the path and generates the image
+def getImage(name):
+	path='/home/kratos/cyborg_ws/src/eyrc_2022_hb/eyrc_hb_feed/src/taskImages/{}'.format(name)
+	# read image
+	image=cv2.imread(path)        
+	# resize
+	image=resize(image, w=500, h=500)
+
+	return image
+
+# extract contour coordinates from image/function according to the chosen mode
+def getContourMsg(mode=None, image=None, density=3, points=500):
 	if mode == 0:
 		print("...Image mode selected...")
-		contours=getContoursImg(image, points)
+		contours=getContoursImg(image, density)
 	if mode == 1:
 		print("..Function mode selected...")
 		contours=getContoursFunc(points)
@@ -68,7 +77,7 @@ def getContourMsg(image=None, points=500, mode=None):
 	return contours
 
 # contour extraction algo
-def getContoursImg(image, points):
+def getContoursImg(image, density):
 	# Convert to grayscale
 	gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
@@ -86,6 +95,8 @@ def getContoursImg(image, points):
 
 	# add theta to each pixel to convert it to a waypoint
 	waypoints=addTheta(waypoints)
+	# dilye waypoint density
+	waypoints=diluteWaypoints(waypoints, density)
 
 	# extract x, y, theta goals into 3 separate lists
 	x_goals, y_goals, theta_goals=splitContours(waypoints)
@@ -96,9 +107,11 @@ def getContoursImg(image, points):
 def getContoursFunc(points):
 	t=[0, 2*math.pi]
 
+	# lower limit of time
 	t_low=t[0]
+	# upper limit of time
 	t_high=t[1]
-
+	# store waypoints
 	contours=[]
 
 	for i in range(points):
@@ -112,6 +125,7 @@ def getContoursFunc(points):
 
 		contours.append([[x_goal, y_goal, theta_goal]])
 
+	# split into multiple waypoints if they are too distant
 	contours=getMultipleContours(contours, 20)
 	
 	# extract x and y goals into 2 separate lists
@@ -129,14 +143,14 @@ def addTheta(contours):
 	for contour in contours:
 		for i in range(len(contour)):
 			contour[i][0].append(0)
-			# print(contour[i][0])
 
 	return contours
 
-# returns a true value if any one pixel coordinate is closer than 10 pixels from the other
+# returns a true value if any one pixel coordinate is closer than 'thresh' pixels from the other
 def isPxNearby(pixelA, pixelB, thresh):
 	return abs(pixelA[0]-pixelB[0])<thresh and abs(pixelA[1]-pixelB[1])<thresh
 
+# splits [[[x, y, theta]], [[]], ....] into separate x, y, theta goals
 def splitContours(contours):
 	x_goals=[]
 	y_goals=[]
@@ -148,7 +162,6 @@ def splitContours(contours):
 		y_goal=[]
 		theta_goal=[]
 		for i in range(len(contour)):
-			# print(contour[i])
 			x_goal.append(contour[i][0][0])
 			y_goal.append(contour[i][0][1])
 			theta_goal.append(contour[i][0][2])
@@ -158,53 +171,6 @@ def splitContours(contours):
 		theta_goals.append(theta_goal)
 	
 	return x_goals, y_goals, theta_goals
-
-def fillContours(contours, thresh):
-	for contour in contours:
-		i=0
-		while i < len(contour):
-			if i==len(contour)-1: break
-
-			curr_px=contour[i][0]
-			next_px=contour[i+1][0]
-
-			if (abs(curr_px[0]-next_px[0])>thresh) or (abs(curr_px[1]-next_px[1])>thresh):
-				new_x=int((curr_px[0]+next_px[0])/2)
-				new_y=int((curr_px[1]+next_px[1])/2)
-				new_px=np.array([[new_x, new_y]])
-				
-				# new_px=new_px.reshape(1,2)
-
-				slobj = slice(0, i+1)
-				# print(slobj)
-
-				# print(new_px.shape, contour[0].shape)
-				
-				# contour[slobj] = new_px
-				# # i-=1
-				# print(contour[i+1])
-				contour=np.insert(slobj, new_px)
-				# i-=1
-			i+=1
-
-	return contours
-
-# this function draws the contours then extracts all the drawn pixels to form a denser set of waypoints
-def improveContours(contours):
-	frame=np.ones([500, 500, 3])
-	frame=cv2.drawContours(frame, contours, -1, (0, 0, 0), 1)
-	contours.clear()
-
-	width, height, _=frame.shape
-
-	for w in range(width):
-		for h in range(height):
-			# print(frame[w][h])
-			if(frame[h][w][0]==0): 
-				# print(h, w)
-				contours.append([[w, h, 0]]) #last 0 being appended is the theta goal
-
-	return contours
 
 # this function splits a series of waypoints into separate contours
 def getMultipleContours(contours, thresh):
@@ -230,3 +196,16 @@ def getMultipleContours(contours, thresh):
 
 	return separated_contours
 
+# reduce density of the waypoints to 'density' no.of pixels between consecutive waypoints
+def diluteWaypoints(waypoints, density):
+	diluted_waypoints=[]
+
+	# add a waypoint in every 'density' interval
+	for contour in waypoints:
+		diluted_contour=[]
+		for i in range(len(contour)):
+			if i%density==0: diluted_contour.append(contour[i])
+
+		diluted_waypoints.append(diluted_contour)
+
+	return diluted_waypoints

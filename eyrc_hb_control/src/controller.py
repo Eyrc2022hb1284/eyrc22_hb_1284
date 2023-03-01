@@ -13,6 +13,7 @@ from control_utils import *
 import ast
 import cv2
 import numpy as np
+from std_msgs.msg import std_msgs
 
 class goToPose:
     def __init__(self):
@@ -46,6 +47,7 @@ class goToPose:
         self.goal_sub=rospy.Subscriber('/contours', String, self.goal_callback)
         self.odom_sub=rospy.Subscriber('hb/odom', Pose2D, self.odom_callback)
         self.twist_pub=rospy.Publisher('hb/cmd_vel', Twist, queue_size=10)
+        self.int_pub=rospy.Publisher('/penstatus', String, queue_size=1)
         
         # pid params
         self.params_linear={'Kp':0.06, 'Ki':0, 'Kd':0}
@@ -102,6 +104,9 @@ class goToPose:
                             # rospy.sleep(0.5)
                             break
         
+        #servo_up
+        self.int_pub.publish("0")
+
         # trajectory visualisation
         print("Visualising the trajectory...")
         frame=np.ones([500,500,3])

@@ -55,10 +55,14 @@ class PerspectiveTransform:
             curr_upperRight, curr_upperLeft, curr_bottomRight, curr_bottomLeft=extract_arena_corners(self.corners, self.ids, self.aruco_ids)
 
             # dont update corners if they arent detected
-            if(curr_upperRight is not None): self.upperRight=curr_upperRight
-            if(curr_upperLeft is not None): self.upperLeft=curr_upperLeft
-            if(curr_bottomRight is not None): self.bottomRight=curr_bottomRight
-            if(curr_bottomLeft is not None): self.bottomLeft=curr_bottomLeft
+            if(curr_upperRight is not None): self.upperRight=[545 , 34] 
+            #curr_upperRight = 545 , 34 
+            if(curr_upperLeft is None): self.upperLeft=[131,40]
+            #curr_upperLeft  = 131 , 40 
+            if(curr_bottomRight is  None): self.bottomRight=[535,439]
+            #curr_bottomRight = 535 , 439 
+            if(curr_bottomLeft is None): self.bottomLeft=[140,433]
+            #curr_bottomLeft = 140 ,433 
 
             if self.upperLeft is not None and self.upperRight is not None and self.bottomLeft is not None and self.bottomRight is not None:
 

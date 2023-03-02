@@ -36,7 +36,7 @@ class Odom:
 		self.bot_aruco_corners=[]
 		
 		rospy.Subscriber('hb/cam_feed', Image, self.callback)
-		self.pub = rospy.Publisher('hb/odom', aruco_data, queue_size=10)
+		self.pub = rospy.Publisher('/detected_aruco', aruco_data, queue_size=10)
 
 		while not rospy.is_shutdown():
 			if self.frame is None: continue

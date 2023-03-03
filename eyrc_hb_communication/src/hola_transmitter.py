@@ -23,8 +23,8 @@ class Transmitter:
         self.fw_rpm=0
         self.lw_rpm=0
         self.rw_rpm=0
-        self.servo_angle = 90
 
+        self.servo_angle = 10
         self.sub = rospy.Subscriber('hb/cmd_vel', Twist, self.callback)
         rospy.Subscriber('/penStatus', Int32, self.callback_servo)
 
@@ -47,10 +47,12 @@ class Transmitter:
 
 
     def callback_servo(self, msg):
+        # pen down
         if msg.data == 1:
-            self.servo_angle=85
+            self.servo_angle=5
+        # pen up
         else:
-            self.servo_angle=150      
+            self.servo_angle=10
 
 if __name__ == '__main__':
 

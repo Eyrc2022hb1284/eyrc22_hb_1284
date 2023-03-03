@@ -204,7 +204,7 @@ def diluteWaypoints(waypoints, density):
 	for contour in waypoints:
 		diluted_contour=[]
 		for i in range(len(contour)):
-			if i%density==0: diluted_contour.append(contour[i])
+			if i==len(contour)-1 or i%density==0: diluted_contour.append(contour[i])
 
 		diluted_waypoints.append(diluted_contour)
 

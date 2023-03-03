@@ -39,6 +39,7 @@ class Odom:
 		while not rospy.is_shutdown():
 			if self.frame is None: continue
 
+			frame=self.frame.copy()
 			id, corners=detect_aruco(self.frame, self.dict, self.params)
 
 			if len(corners)==0 or len(id)==0 or len(corners)!=len(id): 
@@ -60,8 +61,8 @@ class Odom:
 				# store pose in the pose msg
 				self.pose_msg.x, self.pose_msg.y, self.pose_msg.theta = getPose(self.bot_aruco_corners)
 
-			self.frame = cv2.putText(self.frame, 'x: {} y: {} theta: {}'.format(self.pose_msg.x, self.pose_msg.y, round(self.pose_msg.theta, 3)), (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
-			cv2.imshow('frame', self.frame)
+			frame = cv2.putText(frame, 'x: {} y: {} theta: {}'.format(self.pose_msg.x, self.pose_msg.y, round(self.pose_msg.theta, 3)), (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
+			cv2.imshow('frame', frame)
 			cv2.waitKey(1)
 
 			self.pub.publish(self.pose_msg)

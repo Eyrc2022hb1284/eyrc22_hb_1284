@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 
 '''
-Author: Debrup
-This script takes up velocities published by controller.py on hb/cmd_vel, converts them into rpm and then transmits it to the HolA bot
+Team Id : HB1284
+Author List : Debrup
+Filename: hola_transmitter.py
+Theme: HoLA Bot
+Functions: callback(), callback_servo()
+Global Variables: None
 '''
 
 import argparse
@@ -24,39 +28,58 @@ class Transmitter:
         self.lw_rpm=0
         self.rw_rpm=0
 
+        # pen up angle
         self.servo_angle = 10
+
+        # subscribers
         self.sub = rospy.Subscriber('hb/cmd_vel', Twist, self.callback)
         rospy.Subscriber('/penStatus', Int32, self.callback_servo)
-
 
         # socket object
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
         while not rospy.is_shutdown():
             
+            # make the message
             msg = "{},{},{},{}\r".format(self.fw_rpm,self.rw_rpm,self.lw_rpm,self.servo_angle)
+            # transmit data
             self.sock.sendto(str.encode(msg), (args.ip, args.port))
             print("Data sent: {}".format(msg))
             
             rate.sleep()
 
+    '''
+    Function Name: callback
+    Input: Twist data
+    Output: None
+    Logic: 
+        This function gets the chassis velocity, calculates the wheel velocities (calls the getWheelVel method) and stores them in a variable
+    Example call: self.callback(data)
+    '''
     def callback(self, data):
         fw_vel, lw_vel, rw_vel=getWheelVel(data.linear.x, data.linear.y, data.angular.z, d=0.105, r=0.029)
-        # convert m/s to rpm
+        # convert velocities to rpm
         self.fw_rpm, self.lw_rpm, self.rw_rpm=Vel2RPM(fw_vel, lw_vel, rw_vel) 
 
-
+    '''
+    Function Name: callback_servo
+    Input: Int data
+    Output: None
+    Logic: 
+        This function gets the penstatus data, and stores servo angle in the servo angle variable accordingly
+    Example call: self.callback_servo(data)
+    '''
     def callback_servo(self, msg):
         # pen down
         if msg.data == 1:
-            self.servo_angle=5
+            self.servo_angle=4
         # pen up
         else:
             self.servo_angle=10
 
 if __name__ == '__main__':
 
-    # pass ip and port as argument
+    # pass ip and port number as argument
     parser = argparse.ArgumentParser()
     parser.add_argument('ip', nargs='?', type=str, help='ip address')
     parser.add_argument('-p', '--port', type=int, default=4210, help='port, default: 4210')

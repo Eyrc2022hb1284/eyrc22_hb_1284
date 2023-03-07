@@ -60,7 +60,7 @@ class goToPose:
         self.pen_status_pub=rospy.Publisher('/penStatus', Int32, queue_size=1)
         
         # PID params
-        self.params_linear={'Kp':0.048, 'Ki':0, 'Kd':0}
+        self.params_linear={'Kp':0.0487, 'Ki':0, 'Kd':0}
         self.params_ang={'Kp':5, 'Ki':0, 'Kd':0}
         self.intg={'vx':0, 'vy':0, 'w':0}
         self.last_error={'vx':0, 'vy':0, 'w':0}

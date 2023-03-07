@@ -1,7 +1,6 @@
 #include <WiFi.h>
 #include<WiFiUdp.h>
 
-
 #define BUZZER_PIN 22
 #define SERVO_PIN 23
 
@@ -180,12 +179,7 @@ void loop() {
       arr[i]=atoi(pch);
       pch = strtok(NULL , ",");
       i++;
-    }
-  
-//    for(int j=0; j<4; j++){
-//      Serial.println(arr[j]);
-//    }    
-    
+    }  
   }
 
   stepperFront.changeRPM(arr[0]);

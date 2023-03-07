@@ -1,0 +1,7 @@
+<launch>
+  <!-- launch relevant scripts -->
+  <node name = "cam_driver" pkg='eyrc_hb_feed' type='cam_driver.py'/>
+  <node name = "feed_undistort" pkg='eyrc_hb_feed' type='feed_undistort.py'/>
+  <node name = "transform_feed" pkg='eyrc_hb_feed' type='transform_feed.py'/>  
+  <node name = "odom" pkg='eyrc_hb_feed' type='odom.py' output='screen'/>  
+</launch>

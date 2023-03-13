@@ -45,9 +45,6 @@ class goToPose:
         self.y_goal=None
         self.theta_goal=None
 
-        # list used to store the trajectory of the center of the bot whenever the pen is down
-        self.trajectory=[]
-
         # ros rate
         self.rate=rospy.Rate(75)
 
@@ -74,63 +71,38 @@ class goToPose:
                 break
 
         # control loop
-        # iterate through each contour
+
+        # move to homepose(for original homepose)
+        self.moveHolaTo(250, 250, 0)
+        self.stop()
+        rospy.sleep(0.1)
+
+        # iterate through each contour to draw the image/function
         for i in range(len(self.x_goals)):
             # iterate through each point in the contour
             for j in range(len(self.x_goals[i])):
 
-                self.x_goal=self.x_goals[i][j]
-                self.y_goal=self.y_goals[i][j]
-                self.theta_goal=self.theta_goals[i][j]
+                # move hola to the desired point
+                self.moveHolaTo(self.x_goals[i][j], self.y_goals[i][j], self.theta_goals[i][j])
 
-                print("Goal: [{}, {}, {}]".format(self.x_goal, self.y_goal, self.theta_goal))
+                # if first point of trajectory, pen down
+                if j==0: 
+                    self.stop()
+                    self.pen_status_pub.publish(1)
+                    self.pen_status=1
+                    rospy.sleep(0.5)
 
-                # move the bot untill it reaches the goal point
-                while not rospy.is_shutdown():
-                    # if aruco marker isn't detected or task status = 1, stop the bot
-                    if (self.x==-1 and self.y==-1 and self.theta==4) or self.task_status==1 :
-                        self.stop()
-                    else:
-                        # error calculation
-                        angle_error, error_x, error_y = calculateError([self.x_goal, self.y_goal, self.theta_goal], [self.x, self.y, self.theta])
+                # if last point of trajectory, pen up
+                if j==len(self.x_goals[i])-1: 
+                    self.stop()
+                    self.pen_status_pub.publish(0)
+                    self.pen_status=0
+                    rospy.sleep(0.5)
 
-                        # velocity calculation
-                        v_x, v_y=getLinearVel(error_x,  error_y, self.params_linear, self.linear_thresh, self.intg, self.last_error)
-                        ang_vel=getAngVel(angle_error, self.params_ang, self.ang_thresh, self.intg, self.last_error)
-
-                        # setup the msg for publishing
-                        self.twist_msg.linear.x=v_x 
-                        self.twist_msg.linear.y=v_y
-                        self.twist_msg.angular.z=ang_vel
-
-                        # publish onto hb/cmd_vel
-                        self.twist_pub.publish(self.twist_msg)
-
-                        # consider odom of the bot as a part of the trajectory only when pen is down
-                        if self.pen_status==1: 
-                            self.trajectory.append([self.x, self.y])
-
-                        self.rate.sleep()
-
-                        #stop when reached target pose
-                        if abs(angle_error)<=self.ang_thresh and abs(error_x)<=self.linear_thresh and abs(error_y)<=self.linear_thresh:
-                            print("reached goal pose: [{}, {}, {}]".format(self.x,  self.y, round(self.theta, 3)))
-                            
-                            # if first point of trajectory, pen down
-                            if j==0: 
-                                self.stop()
-                                self.pen_status_pub.publish(1)
-                                self.pen_status=1
-                                rospy.sleep(0.5)
-
-                            # if last point of trajectory, pen up
-                            if j==len(self.x_goals[i])-1: 
-                                self.stop()
-                                self.pen_status_pub.publish(0)
-                                self.pen_status=0
-                                rospy.sleep(0.5)
-
-                            break
+        # move back to homepose(for original configuration)
+        self.moveHolaTo(250, 250, 0)
+        self.stop()
+        rospy.sleep(0.1)
 
     '''
     Function Name: goal_callback
@@ -190,6 +162,49 @@ class goToPose:
         self.twist_msg.angular.z=0
         
         self.twist_pub.publish(self.twist_msg)
+
+    '''
+    Function Name: moveHolaTo
+    Input: x(x goal), y(y goal), theta(theta goal)
+    Output: No output
+    Logic: 
+        This function moves HoLA bot from one pixel coordinate to another. It encloses the overall bot maneuver logic and thus calls
+        the functions that contribute to it(error calculation and getting velocity from them using P controller)
+    Example call: self.moveHolaTo(x_goal, y_goal, theta_goal)
+    ''' 
+    def moveHolaTo(self, x, y, theta):
+        self.x_goal=x
+        self.y_goal=y
+        self.theta_goal=theta
+
+        print("Goal: [{}, {}, {}]".format(self.x_goal, self.y_goal, self.theta_goal))
+
+        # move the bot untill it reaches the goal point
+        while True:
+            # if aruco marker isn't detected or task status = 1, stop the bot
+            if (self.x==-1 and self.y==-1 and self.theta==4) or self.task_status==1 :
+                self.stop()
+            else:
+                # error calculation
+                angle_error, error_x, error_y = calculateError([self.x_goal, self.y_goal, self.theta_goal], [self.x, self.y, self.theta])
+
+                # velocity calculation
+                v_x, v_y=getLinearVel(error_x,  error_y, self.params_linear, self.linear_thresh, self.intg, self.last_error)
+                ang_vel=getAngVel(angle_error, self.params_ang, self.ang_thresh, self.intg, self.last_error)
+
+                # setup the msg for publishing
+                self.twist_msg.linear.x=v_x 
+                self.twist_msg.linear.y=v_y
+                self.twist_msg.angular.z=ang_vel
+
+                # publish onto hb/cmd_vel
+                self.twist_pub.publish(self.twist_msg)
+                self.rate.sleep()
+
+                #stop when reached target pose
+                if abs(angle_error)<=self.ang_thresh and abs(error_x)<=self.linear_thresh and abs(error_y)<=self.linear_thresh:
+                    print("reached goal pose: [{}, {}, {}]".format(self.x,  self.y, round(self.theta, 3)))
+                    break
 
 if __name__=='__main__':
 

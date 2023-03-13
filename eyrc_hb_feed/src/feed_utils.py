@@ -1,14 +1,38 @@
+'''
+Team Id : HB1284
+Author List : Debrup
+Filename: feed_utils.py
+Theme: HoLA Bot
+Functions: detect_aruco(), extract_arena_corners(), perspectiveTransform(), getPose(), resize(), getImage(), getContourMsg(), getContoursImg(), getContoursFunc()
+		   getCurrGoal(), addTheta(), isPxNearby(), splitContours(), getMultipleContours(), diluteWaypoints()
+Global Variables: None
+'''
+
 import cv2
 import math
 
-#detects the presence of aruco markers in the cam feed and returns the coordinates of the corners
+'''
+Function Name: detect_aruco
+Input: frame, aruco dictionary, aruco params
+Output: aruco ids, aruco corners
+Logic: 
+	This function performs aruco marker detection on the imput frame and returns the list of detected aruco ids and their corresponding corners
+Example call: id, corners=detect_aruco(frame, dict, params)
+'''
 def detect_aruco(aruco_frame, dict, params):
 	#detect the markers in the frame
 	corners, id, _ = cv2.aruco.detectMarkers(aruco_frame, dict, parameters=params)
 	
 	return id, corners
 
-# extract the 4 corners of the arena
+'''
+Function Name: extract_arena_corners
+Input: corner_msg(list of detected corners), id_msg(list of detected aruco ids), aruco_ids(list of aruco ids available at the corners of the arena)
+Output: upper right, upper left, bottom right, bottom left corners' pixel coordinates
+Logic: 
+	This function takes in the corner and id lists and returns the pixel coordinates of the 4 corners of the arena.
+Example call: uR, uL, bR, bL = extract_arena_corners(corners, ids, aruco_ids)
+'''
 def extract_arena_corners(corner_msg, id_msg, aruco_ids):
 	upperLeft=None
 	upperRight=None
@@ -16,24 +40,43 @@ def extract_arena_corners(corner_msg, id_msg, aruco_ids):
 	bottomRight=None
 	
 	for i in range(len(corner_msg)):
+		# if the bottom right aruco marker is detected, store its bottom right corner 
 		if(id_msg[i][0]==aruco_ids[0]): bottomRight=corner_msg[i][0][2]
 
+		# if the bottom left aruco marker is detected, store its bottom left corner 
 		if(id_msg[i][0]==aruco_ids[1]): bottomLeft=corner_msg[i][0][3]
 
+		# if the upper right aruco marker is detected, store its upper right corner 
 		if(id_msg[i][0]==aruco_ids[2]): upperRight=corner_msg[i][0][1]
 
+		# if the upper left aruco marker is detected, store its upper left corner 
 		if(id_msg[i][0]==aruco_ids[3]): upperLeft=corner_msg[i][0][0]
 	
 	return upperRight, upperLeft, bottomRight, bottomLeft
 
-# performs perspective transform
+'''
+Function Name: perspectiveTransform
+Input: feed(image), arena_corners(list of 4 pixel coordinates), final_feed_corners(list of 4 corners of the output frame)
+Output: transformed image
+Logic: 
+	This function takes in image, the list of coordinates it wants to perspective transform on and the list of pixel coordinates of the 4 corners of the final image.
+	Then it performs the perspective transform followed by warpPerspective and finally returns the transformed frame.
+Example call: feed = perspectiveTransform(image, target_corners, final_frame_corners)
+'''
 def perspectiveTransform(feed, arena_corners, final_feed_corners):
 	mat=cv2.getPerspectiveTransform(arena_corners, final_feed_corners)
 	feed=cv2.warpPerspective(feed, mat, (500, 500))
 
 	return feed
 
-# calcualtes pose of the robot
+'''
+Function Name: getPose
+Input: corners(corners of the aruco marker on the robot)
+Output: x(x coordinate), y(y coordinate), theta(orientation)
+Logic: 
+	This function calculates the real time odometry of the robot.
+Example call: x, y, th = getPose(corners)
+'''
 def getPose(corners):
 		# returns pose of the bot
 
@@ -51,11 +94,25 @@ def getPose(corners):
 		
 		return x, y, theta
 
-# resize image
+'''
+Function Name: resize
+Input: img(frame), w(output_width), h(output_height)
+Output: resized frame
+Logic: 
+	This function takes in the image, target width and height and returns the resized frame
+Example call: frame = resize(frame, w, h)
+'''
 def resize(img, w, h):
 	return cv2.resize(img, (w, h))
 
-# constructs the path and generates the image
+'''
+Function Name: getImage
+Input: name(name of the image)
+Output: cv2 frame
+Logic: 
+	This function takes in the image name (including the extension) and generates the cv2 frame using imread function
+Example call: frame = getImage('smile.jpg)
+'''
 def getImage(name):
 	path='/home/kratos/cyborg_ws/src/eyrc_2022_hb/eyrc_hb_feed/src/taskImages/{}'.format(name)
 	# read image
@@ -65,7 +122,19 @@ def getImage(name):
 
 	return image
 
-# extract contour coordinates from image/function according to the chosen mode
+'''
+Function Name: getContourMsg
+Input: mode(function/Image mode), image(image that is to be drawn), density(resolution of the contours(used incase of image mode)),
+	   points(number of points in the trajectory(used incase of function mode))
+Output: contours(list of waypoints. Data Structure:[[[x1, x2, ..], [], ..., []]
+													[[y1, y2, ..], [], ..., []]
+													[[theta1, theta2, ..], [], ..., []]])
+Logic: 
+	This function takes in the mode, image and density(incase of image mode) and points(incase of function mode) and returns the waypoints that the robot has to traverse 
+	inorder to draw the image/plot the function.
+Example call: contours = getContoursMsg(mode=0, image=frame, density=6) ------> image mode
+						 getContourMsg(mode=0, points=1000) ---------------> function mode
+'''
 def getContourMsg(mode=None, image=None, density=3, points=500):
 	if mode == 0:
 		print("...Image mode selected...")
@@ -76,13 +145,22 @@ def getContourMsg(mode=None, image=None, density=3, points=500):
 
 	return contours
 
-# contour extraction algo
+'''
+Function Name: getContoursImg
+Input: image(frame that's to be drawn), density(resolution of each contour)
+Output: list containing goals along x, y axes and target orientation.
+Logic: 
+	This function takes in the image to be drawn alongwith the density of the contour. It then converts the image into a thresholded image(incase it isn't)
+	this is followed by contouring and inclusion of theta goals in each pixel coordinate extracted. The final set of contours are diluted depending on the value of
+	'density'. Finally, a list containing goals along x, y axes and target orientation is returned.
+Example call: contours = getContoursImg(frame, density)
+'''
 def getContoursImg(image, density):
 	# Convert to grayscale
 	gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
 	# Threshold the image
-	thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
+	thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV)[1]
 
 	# Find the contours in the image
 	contours, hierarchy = cv2.findContours(thresh, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
@@ -90,7 +168,7 @@ def getContoursImg(image, density):
 	waypoints=[]
 	# Extract the contours who dont have a parent
 	for i in range(len(contours)):
-		if hierarchy[0][i][3] == -1:
+		if i==0 or i==1 or i==2 or i==3 or i==4 or i==11: 
 			waypoints.append(contours[i].tolist())
 
 	# add theta to each pixel to convert it to a waypoint
@@ -103,9 +181,16 @@ def getContoursImg(image, density):
 	
 	return [x_goals, y_goals, theta_goals]
 
-# function plotting algo
+'''
+Function Name: getContoursFunc
+Input: points(number of points the time range is going to be divided into)
+Output: list containing goals along x, y axes and target orientation.
+Logic: 
+	This function takes in the number of points, gets goal for each time instance and appends it in a list to generate contour data
+Example call: [x_g, y_g, theta_g] = getContoursFunc(points)
+'''
 def getContoursFunc(points):
-	t=[0, 2*math.pi]
+	t=[-1, 4*math.pi]
 
 	# lower limit of time
 	t_low=t[0]
@@ -126,19 +211,52 @@ def getContoursFunc(points):
 		contours.append([[x_goal, y_goal, theta_goal]])
 
 	# split into multiple waypoints if they are too distant
-	contours=getMultipleContours(contours, 20)
-	
+	contours=getMultipleContours(contours, 500)
 	# extract x and y goals into 2 separate lists
 	x_goals, y_goals, theta_goals=splitContours(contours)
 
 	# print(x_goals, y_goals, theta_goals)
 	return [x_goals, y_goals, theta_goals]
 
-# generate goals wrt time
+'''
+Function Name: getCurrGoal
+Input: curr_t(time value at a certain instant)
+Output: x(t), y(t), theta(t) {parametric functions along x, y and theta axes respectively}.
+Logic: 
+	This function computes the odometry of the robot at time 'curr_t' according to the parametric equations(x(t), y(t), theta(t))
+Example call: x, y, theta = getCurrGoal(t)
+'''
 def getCurrGoal(curr_t):
-	return 200*math.cos(curr_t), 100*math.sin(2*curr_t), (math.pi/4)*math.sin(curr_t)
+	# calculate polar coordinates
+	r_t = 60*math.ceil((4*math.pi-curr_t)/math.pi)*math.sin(2*curr_t)
+	a_t = curr_t + math.pi/2
 
-# edits the array of contours-adds a third element to each pixel that acts as theta(0 for every waypoint) input
+	x=0
+	y=0
+	theta=0
+
+	if curr_t < 0: 
+		x=0
+		y=200*curr_t
+		theta = curr_t*math.pi/2
+	else: 
+		x=r_t*math.cos(a_t)
+		y=r_t*math.sin(a_t)
+		theta = (2*curr_t) % (2*math.pi)
+		
+	if theta > math.pi:
+		theta = theta - 2*math.pi
+		
+	return x, y, theta
+
+'''
+Function Name: addTheta
+Input: contours(contour data)
+Output: contours(theta appended contours)
+Logic: 
+	This function takes in the contour data, iterates through it and for each pixel coordinate, appends a theta value of 0.
+Example call: contours = addTheta(contours)
+'''
 def addTheta(contours):
 	for contour in contours:
 		for i in range(len(contour)):
@@ -146,11 +264,25 @@ def addTheta(contours):
 
 	return contours
 
-# returns a true value if any one pixel coordinate is closer than 'thresh' pixels from the other
+'''
+Function Name: isPxNearby
+Input: pixelA(pixel coordinates of point A), pixelB(pixel coordinates of point B), thresh(threshold value-a gap more than this means pixel A and B are far from each other)
+Output: boolean(near ot far)
+Logic: 
+	This function judges if 2 pixel coordinates are far from each other or not.
+Example call: isFar = isPxNearby(a, b, thresh)
+'''
 def isPxNearby(pixelA, pixelB, thresh):
 	return abs(pixelA[0]-pixelB[0])<thresh and abs(pixelA[1]-pixelB[1])<thresh
 
-# splits [[[x, y, theta]], [[]], ....] into separate x, y, theta goals
+'''
+Function Name: splitContours
+Input: contours(contour data)
+Output: x_goals([[x1, x2, ...], [], ..., []]), y_goals([[y1, y2, ...], [], ..., []]), theta_goals([[theta1, theta2, ...], [], ..., []])
+Logic: 
+	This function takes in the contour data and splits it to generate 3 lists.
+Example call: x_g, y_g, th_g = splitContours(contours)
+'''
 def splitContours(contours):
 	x_goals=[]
 	y_goals=[]
@@ -172,7 +304,15 @@ def splitContours(contours):
 	
 	return x_goals, y_goals, theta_goals
 
-# this function splits a series of waypoints into separate contours
+'''
+Function Name: getMultipleContours
+Input: contours(contour data), thresh(pixel threshold)
+Output: separated_contours(list of contours if points within the contour were too far away)
+Logic: 
+	This function basically groups close pixel coordinates together. 'close' here refers to whether 2 pixel coordinates 
+	have a distance within 10px along both axes.
+Example call: contours = getMultipleContours(contours, 10)
+'''
 def getMultipleContours(contours, thresh):
 	contour=[]
 	separated_contours=[]
@@ -196,7 +336,14 @@ def getMultipleContours(contours, thresh):
 
 	return separated_contours
 
-# reduce density of the waypoints to 'density' no.of pixels between consecutive waypoints
+'''
+Function Name: diluteWaypoints
+Input: waypoints(contour data), density(required resolution of the contour data)
+Output: diluted_waypoints(contour data reduced to the required resolution)
+Logic: 
+	This function takes in the contour data and skips goals such that the desired density is obtained.
+Example call: contours = diluteWaypoints(contours, density)
+'''
 def diluteWaypoints(waypoints, density):
 	diluted_waypoints=[]
 

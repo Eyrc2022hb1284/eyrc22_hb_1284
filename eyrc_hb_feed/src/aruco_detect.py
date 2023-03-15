@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 
 '''
-Author: Debrup
-Purpose: Detects aruco markers present in the camera feed(hb/image_undist)
-         and publishes the detected corners(hb/aruco_corners) and respective aruco ids(hb/aruco_id)
+Team Id : HB1284
+Author List : Debrup
+Filename: aruco_detect.py
+Theme: HoLA Bot
+Functions: img_callback()
+Global Variables: None
 '''
 
 import rospy
@@ -51,7 +54,14 @@ class ArucoDetect:
             self.corner_pub.publish(self.corner_msg)
 
             rospy.loginfo('Publishing corners and IDs')
-
+    '''
+    Function Name: img_callback
+    Input: imgmsg data
+    Output: No output
+    Logic: 
+        This function takes in the image data in rosmsg format, converts it into a cv2 image using CvBridge() and stores it in self.undist_frame
+    Example call: self.img_callback(data)
+    '''
     def img_callback(self, data):
         self.undist_frame=self.bridge.imgmsg_to_cv2(data)
 

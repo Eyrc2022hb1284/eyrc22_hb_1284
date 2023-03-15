@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 
 '''
-Author: Debrup
-Purpose: Publish hb/image_raw from camera feed
+Team Id : HB1284
+Author List : Debrup
+Filename: cam_driver.py
+Theme: HoLA Bot
+Functions: None
+Global Variables: None
 '''
 
 import rospy
@@ -23,7 +27,8 @@ class CamDriver:
         vid=cv2.VideoCapture(2, cv2.CAP_V4L)
 
         while not rospy.is_shutdown():
-
+            
+            # end script if unable to access camera
             if  not vid.isOpened():
                 rospy.loginfo("Cannot access camera")
                 rospy.signal_shutdown("Camera unavailable")

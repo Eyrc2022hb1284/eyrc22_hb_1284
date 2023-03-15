@@ -73,6 +73,9 @@ def getAngVel(error, const, ang_thresh, intg_params, last_error_params):
         else:
             ang_vel = pid(error, const, intg_params['w'], last_error_params['w'], )
 
+        # if ang_vel < 0 : ang_vel = -4
+        # if ang_vel > 0 : ang_vel = 4
+
     return ang_vel
 
 '''

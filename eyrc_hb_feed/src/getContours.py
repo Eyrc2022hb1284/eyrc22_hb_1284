@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 
 '''
-Author: Debrup
-Purpose: generate waypoints/goals to draw the given image/function
+Team Id : HB1284
+Author List : Debrup
+Filename: getContours.py
+Theme: HoLA Bot
+Functions: None
+Global Variables: None
 '''
 
 import rospy
@@ -25,13 +29,12 @@ class getCountour:
 
         # if image mode
         if args.mode == 0:
-
             # generate image
             image=getImage(args.name)
             # generate waypoints
             self.contour_msg=getContourMsg(mode=args.mode, image=image, density=args.density)
 
-        # if function mode
+        # else if function mode
         elif args.mode == 1:
             self.contour_msg=getContourMsg(mode=args.mode, points=args.points)
 

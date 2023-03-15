@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 
 '''
-Author: Debrup
-Purpose: Test script-visualises the sequence of waypoints generated
+Team Id : HB1284
+Author List : Debrup
+Filename: contourTest.py
+Theme: HoLA Bot
+Functions: contour_callback()
+Global Variables: None
 '''
 
 import rospy
@@ -15,17 +19,25 @@ class TestContour:
     def __init__(self):
         rospy.init_node("test_contours")
 
+        # variables storing the goal coordinates
         self.x_goals=None
         self.y_goals=None
         self.theta_goals=None
 
+        # subscriber
         self.sub=rospy.Subscriber('/contours', String, self.contour_callback)
 
         # ensure that goal points get stored
         while not rospy.is_shutdown():
             if self.x_goals is not None and self.y_goals is not None and self.theta_goals is not None:
                 break
-        
+
+        # ____________________________________________________Test Script____________________________________________________________________
+        # Purpose: -> Check trajectory consistency
+        #          -> Check trajectory correctness followed by proper visualisation
+        #          -> Calculate resolution of each trajectory
+        # ___________________________________________________________________________________________________________________________________
+
         print("...Waypoint correctness test...")
         print('Number of trajectories accross x: {} y: {} theta: {}'.format(len(self.x_goals), len(self.y_goals), len(self.theta_goals)))
 
@@ -54,6 +66,7 @@ class TestContour:
             max_px_diff_x=0
             min_px_diff_y=0
             max_px_diff_y=0
+            
             for j in range(len(self.x_goals[i])):
                 if j>0:
                     min_px_diff_x=min(min_px_diff_x, abs(self.x_goals[i][j-1]-self.x_goals[i][j]))
@@ -80,7 +93,16 @@ class TestContour:
 
         rospy.loginfo("...Trajectory visualisation test concluded...")
         rospy.signal_shutdown("Test concluded")
-
+    
+    '''
+    Function Name: contour_callback
+    Input: contour data
+    Output: None
+    Logic: 
+        This function takes in the incoming contour data in the form of a string. The data is converted back into a list and then split up to
+        extract x, y, theta goals
+    Example call: self.contour_callback(data)
+    '''
     def contour_callback(self, data):
         contours = ast.literal_eval(data.data)
 

@@ -16,7 +16,7 @@ sys.path.insert(0, '/home/kratos/cyborg_ws/src/eyrc_2022_hb/eyrc_hb_control/scri
 import rospy
 from geometry_msgs.msg import Twist
 from control_utils import * 
-from std_msgs.msg import Float64, Int64
+from std_msgs.msg import Float64, Int32
 from eyrc_hb_feed.msg import aruco_data
 import argparse
 from dynamic_reconfigure.server import Server
@@ -38,7 +38,7 @@ class goToPose:
         # goals
         self.x_goals=[150, 350, 250, 300, 275, 287, 281, 284]
         self.y_goals=[150, 350, 250, 300, 275, 287, 281, 284]
-        self.theta_goals=[0, 3.14, 1.57, 2.355, 1.962, 2.159, 2.06, 2.109]
+        self.theta_goals=[0, 3.142, 1.571, 2.356, 1.963, 2.159, 2.061, 2.110]
 
         # tolerance/threshold params
         self.linear_thresh=args.linearThresh
@@ -68,7 +68,7 @@ class goToPose:
 
         # subscriber/publisher
         self.odom_sub=rospy.Subscriber('/detected_aruco', aruco_data, self.odom_callback)
-        self.task_sub=rospy.Subscriber('/taskStatus', Int64, self.task_stat_callback)
+        self.task_sub=rospy.Subscriber('/taskStatus', Int32, self.task_stat_callback)
 
         # publish error
         self.x_error_pub=rospy.Publisher('hb/error_x', Float64, queue_size=10)
@@ -81,11 +81,6 @@ class goToPose:
         # Twist rosmsg
         self.twist_msg=Twist()
 
-        # error rosmsg
-        self.err_x_msg=Float64()
-        self.err_y_msg=Float64()
-        self.err_theta_msg=Float64()
-         
         while not rospy.is_shutdown():
             # control loop
             # iterate through each point
@@ -186,9 +181,9 @@ class goToPose:
                 self.twist_msg.angular.z=ang_vel
 
                 # publish error
-                self.x_error_pub.publish(self.err_x_msg)
-                self.y_error_pub.publish(self.err_y_msg)
-                self.theta_error_pub.publish(self.err_theta_msg)
+                self.x_error_pub.publish(error_x)
+                self.y_error_pub.publish(error_y)
+                self.theta_error_pub.publish(angle_error)
 
                 # publish onto hb/cmd_vel
                 self.twist_pub.publish(self.twist_msg)
@@ -197,7 +192,7 @@ class goToPose:
                 #stop when reached target pose
                 if abs(angle_error)<=self.ang_thresh and abs(error_x)<=self.linear_thresh and abs(error_y)<=self.linear_thresh:
                     print("reached goal pose: [{}, {}, {}]".format(self.x,  self.y, round(self.theta, 3)))
-                    self.stop()
+                    # self.stop()
                     break
 
 if __name__=='__main__':

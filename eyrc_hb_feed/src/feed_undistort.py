@@ -12,6 +12,7 @@ Global Variables: None
 import rospy
 import cv2
 from sensor_msgs.msg import Image
+from std_msgs.msg import Int32
 from cv_bridge import CvBridge
 import pickle
 
@@ -26,16 +27,21 @@ class FeedUndistort:
 
         # variable to store feed 
         self.image=None
+        self.image_availability=1
+
         # variable to store the undistortion parameters
         self.dist_param=None
 
         # subscriber/publisher
-        self.sub=rospy.Subscriber('hb/image_raw', Image, self.cam_callback)
+        self.feed=rospy.Subscriber('hb/image_raw', Image, self.cam_callback)
+        self.feed_check=rospy.Subscriber('hb/image_raw_check', Int32, self.cam_check_callback)
+
         self.pub=rospy.Publisher('hb/image_undist', Image, queue_size=10)
 
         # load undistorting parameters
         with open("/home/kratos/cyborg_ws/src/eyrc_2022_hb/eyrc_hb_feed/params/undist_params.p", 'rb') as file:
-            self.dist_param = pickle.load(file)
+            self.dist_param = pickle.load(file)            
+
 
     '''
     Function Name: cam_callback
@@ -55,6 +61,14 @@ class FeedUndistort:
         self.image_msg = self.bridge.cv2_to_imgmsg(undistorted_frame, 'bgr8')
         self.pub.publish(self.image_msg)
         rospy.loginfo("camera feed undistorting...")
+
+    def cam_check_callback(self, data):
+        self.image_availability=data.data
+
+        # if no image is getting published
+        if self.image_availability == -1:
+            rospy.loginfo("Feed unavailable")
+            rospy.signal_shutdown("feed unavailable")
 
         
 if __name__=='__main__':

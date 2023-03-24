@@ -13,8 +13,8 @@ import rospy
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 import cv2				
-from feed_utils import detect_aruco
-from feed_utils import getPose
+from feed_utils import detect_aruco, getPose
+from std_msgs.msg import Int32
 from eyrc_hb_feed.msg import aruco_data
 
 class Odom:
@@ -34,14 +34,16 @@ class Odom:
 
 		# feed frame
 		self.frame=None
-		
+		self.image_availability=1
+
 		# bot aruco marker id
 		self.botID=15
 
 		# variable that stores all corners of detected aruco markers
 		self.bot_aruco_corners=[]
 		
-		self.sub = rospy.Subscriber('hb/cam_feed', Image, self.callback)
+		self.feed = rospy.Subscriber('hb/cam_feed', Image, self.callback)
+		self.feed_check=rospy.Subscriber('hb/image_raw_check', Int32, self.cam_check_callback)
 		self.pub = rospy.Publisher('/detected_aruco', aruco_data, queue_size=10)
 
 		while not rospy.is_shutdown():
@@ -94,6 +96,14 @@ class Odom:
 	def callback(self, data):
 		# recieves the feed
 		self.frame = self.bridge.imgmsg_to_cv2(data, "mono8")
+
+	def cam_check_callback(self, data):
+		self.image_availability=data.data
+
+		# if no image is getting published
+		if self.image_availability == -1:
+			rospy.loginfo("Feed unavailable")
+			rospy.signal_shutdown("feed unavailable")
 
 if __name__ == '__main__':
     od=Odom()

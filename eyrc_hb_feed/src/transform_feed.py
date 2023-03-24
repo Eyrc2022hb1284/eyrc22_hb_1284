@@ -11,7 +11,7 @@ Global Variables: None
 
 import rospy
 import cv2
-from std_msgs.msg import Int32MultiArray
+from std_msgs.msg import Int32
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 from feed_utils import detect_aruco, extract_arena_corners, perspectiveTransform
@@ -37,6 +37,7 @@ class PerspectiveTransform:
 
         # feed params
         self.feed=None
+        self.image_availability=1
         self.final_feed_corners=np.float32([[0, 0], [500, 0], [0, 500], [500, 500]])
 
         # load the dictionary that was used to generate the markers
@@ -47,6 +48,8 @@ class PerspectiveTransform:
 
         # subcsribers/publishers
         self.undist_sub=rospy.Subscriber('hb/image_undist', Image, self.img_callback)
+        self.feed_check=rospy.Subscriber('hb/image_raw_check', Int32, self.cam_check_callback)
+
         self.pt_pub=rospy.Publisher('hb/cam_feed', Image, queue_size=10)
 
     '''
@@ -89,6 +92,14 @@ class PerspectiveTransform:
                 self.pt_pub.publish(self.transfrom_img)
                 
                 rospy.loginfo("Publishing feed...")
+
+    def cam_check_callback(self, data):
+        self.image_availability=data.data
+
+        # if no image is getting published
+        if self.image_availability == -1:
+            rospy.loginfo("Feed unavailable")
+            rospy.signal_shutdown("feed unavailable")
 
 if __name__=='__main__':
     pt=PerspectiveTransform()

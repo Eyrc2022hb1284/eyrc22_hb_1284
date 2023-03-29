@@ -17,17 +17,19 @@ currentt , delayt , deltat
 
 
 #define BUZZER_PIN 22
-#define SERVO_PIN 23
+#define SERVO_PIN_1 23
+#define SERVO_PIN_2 21
 
 //variables
 
 char msg[255]; 
 char* pch; 
-int i, arr[]={0,0,0,0};
+int i, arr[]={0,0,0,0,0};
 int pos = 0;
 int dutyCycle = 0;
 const int PWMFreq = 50;
-const int PWMChannel = 0;
+const int PWMChannel_image = 0;
+const int PWMChannel_function = 1;
 const int PWMResolution = 8;
 
 //Pins
@@ -52,15 +54,8 @@ int state=1, incomingByte=0;
 unsigned long  currentt ,  deltat;
 unsigned long  delayt = 3000000; //3seconds
 
-
 // object 
 WiFiUDP Udp;
-
-
-
-
-
-
 
 //Stepper Motor class
 class stepperMotor{
@@ -196,9 +191,12 @@ void setup() {
 
 
   //Timer Configuration by specifying the PWM signal’s frequency and duty cycle resolution
-  ledcSetup(PWMChannel, PWMFreq, PWMResolution);
-  ledcAttachPin(SERVO_PIN, PWMChannel);
-  ledcWrite(PWMChannel, dutyCycle);
+  ledcSetup(PWMChannel_image, PWMFreq, PWMResolution);
+  ledcSetup(PWMChannel_function, PWMFreq, PWMResolution);
+  ledcAttachPin(SERVO_PIN_1, PWMChannel_image);
+  ledcAttachPin(SERVO_PIN_2, PWMChannel_function);
+  ledcWrite(PWMChannel_image, dutyCycle);
+  ledcWrite(PWMChannel_function, dutyCycle);
 
   
   pinMode(BUZZER_PIN, OUTPUT);
@@ -243,8 +241,7 @@ void setup() {
   stepperFront.start();
   stepperRight.start();
   stepperLeft.start();
-
-  //servo default 
+  
   ledcWrite(PWMChannel,20);
 
 }
@@ -292,7 +289,9 @@ void loop() {
   stepperRight.changeRPM(arr[1]);
   stepperLeft.changeRPM(arr[2]);
   //changing angle to recieved values with passing higher pwm signals
-  ledcWrite(PWMChannel ,arr[3] + 10);
+  ledcWrite(PWMChannel_image ,arr[3] + 10);
+  ledcWrite(PWMChannel_function ,arr[4] + 10);
+
   
   //calling the function for changing the pulse with time cycle loop
   stepperFront.control();

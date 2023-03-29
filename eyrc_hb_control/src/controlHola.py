@@ -26,6 +26,14 @@ class contolHola:
 
         rospy.signal_shutdown("User command")
 
+    '''
+    Function Name: publishTaskStatus
+    Input: key value
+    Output: No output
+    Logic: 
+        This function detects the key pressed and changes taskStatus value accordingly.
+    Example call: self.publishTaskStatus(key_pressed)
+    ''' 
     def publishTaskStatus(self, key):
         
         if(key==Key.up): 

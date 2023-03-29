@@ -27,20 +27,22 @@ class contolHola:
         rospy.signal_shutdown("User command")
 
     def publishTaskStatus(self, key):
-        # print(str(key))
+        
         if(key==Key.up): 
             self.task_status=0
         elif(key==Key.down): 
             self.task_status=1
         else:
             print('Invalid input, only allowed buttons--UP and DOWN')
-
-        self.pub.publish(self.task_status)
-        rospy.loginfo('Task status: {}'.format(self.task_status))
     
         if key == Key.delete:
+            # end task
+            self.task_status=1
             # Stop listener
             return False
+        
+        self.pub.publish(self.task_status)
+        rospy.loginfo('Task status: {}'.format(self.task_status))
     
 if __name__=='__main__':
     ch=contolHola()

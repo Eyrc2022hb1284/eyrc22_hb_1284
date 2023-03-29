@@ -48,7 +48,7 @@ To run the hola bot for functional plotting
 ```sh 
 roslaunch eyrc_hb_feed getOdom.launch 
 
-roslaunch eyrc_hb_feed getContours.py -m 0/1 -p {no of points}
+rosrun eyrc_hb_feed getContours.py -m 0/1 -p {no of points}
 
 rosrun eyrc_hb_communication hola_transmitter.py 192.168.147.82 -p 44444  
 

@@ -44,7 +44,8 @@ class Odom:
 		
 		self.feed = rospy.Subscriber('hb/cam_feed', Image, self.callback)
 		self.feed_check=rospy.Subscriber('hb/image_raw_check', Int32, self.cam_check_callback)
-		self.pub = rospy.Publisher('/detected_aruco', aruco_data, queue_size=10)
+
+		self.odom = rospy.Publisher('/detected_aruco', aruco_data, queue_size=10)
 
 		while not rospy.is_shutdown():
 			if self.frame is None: continue
@@ -59,7 +60,7 @@ class Odom:
 				self.pose_msg.x=-1
 				self.pose_msg.y=-1
 				self.pose_msg.theta=4
-				self.pub.publish(self.pose_msg)
+				self.odom.publish(self.pose_msg)
 			# else, calculate pose
 			else:
 				# get bot aruco corners
@@ -82,7 +83,7 @@ class Odom:
 			cv2.waitKey(1)
 
 			# publish odometry data onto 'aruco_data' rosmsg
-			self.pub.publish(self.pose_msg)
+			self.odom.publish(self.pose_msg)
 			rospy.loginfo("Publishing Odom")
 			
 	'''
@@ -99,7 +100,6 @@ class Odom:
 
 	def cam_check_callback(self, data):
 		self.image_availability=data.data
-
 		# if no image is getting published
 		if self.image_availability == -1:
 			rospy.loginfo("Feed unavailable")

@@ -24,85 +24,90 @@ class goToPose:
 
         # task/pen status storing variables
         self.task_status=1
-        self.pen_status=0
+        self.pen_status={'image': 0, 'function': 0}
+
+        # variable to store data regarding feed availability(1->available, -1->Unavailable)
+        self.image_availability = 1
 
         # aruco_data params
-        self.x=0
-        self.y=0
-        self.theta=0
-
+        self.odom={'x': 0, 'y': 0, 'theta': 0}
+        
         # tolerance/threshold params
-        self.linear_thresh=1
-        self.ang_thresh=0.1
-
+        self.thresh={'linear': 1, 'angular': 0.1}
+        
         # goal list storing variables
-        self.x_goals=None
-        self.y_goals=None
-        self.theta_goals=None
+        self.x_goals={'image': None, 'function': None}
+        self.y_goals={'image': None, 'function': None}
+        self.theta_goals={'image': None, 'function': None}
 
         # current goal
-        self.x_goal=None
-        self.y_goal=None
-        self.theta_goal=None
+        self.goal={'x': None, 'y': None, 'theta': None}
 
         # ros rate
         self.rate=rospy.Rate(75)
 
         # subscriber/publisher
-        self.goal_sub=rospy.Subscriber('/contours', String, self.goal_callback)
+        self.img_goal_sub=rospy.Subscriber('/contours_0', String, self.img_goal_callback)
+        self.func_goal_sub=rospy.Subscriber('/contours_1', String, self.func_goal_callback)
+
         self.odom_sub=rospy.Subscriber('/detected_aruco', aruco_data, self.odom_callback)
         self.task_stat_sub=rospy.Subscriber('/taskStatus', Int32, self.task_stat_callback)
 
+        self.feed_check=rospy.Subscriber('hb/image_raw_check', Int32, self.cam_check_callback)
+
         self.twist_pub=rospy.Publisher('hb/cmd_vel', Twist, queue_size=10)
-        self.pen_status_pub=rospy.Publisher('/penStatus', Int32, queue_size=1)
+        self.pen_status_pub={'image': rospy.Publisher('/img_penStatus', Int32, queue_size=1),
+                             'function': rospy.Publisher('/func_penStatus', Int32, queue_size=1)}
         
         # PID params
-        self.params_linear={'Kp':0.0487, 'Ki':0, 'Kd':0}
-        self.params_ang={'Kp':5, 'Ki':0, 'Kd':0}
+        self.params={'linear':{'Kp':0.0487, 'Ki':0, 'Kd':0},
+                     'angular':{'Kp':5, 'Ki':0, 'Kd':0}}
+        
         self.intg={'vx':0, 'vy':0, 'w':0}
         self.last_error={'vx':0, 'vy':0, 'w':0}
 
         # Twist rosmsg
         self.twist_msg=Twist()
         
-        # synchronize the script
-        while True:
-            if self.x_goals is not None and self.y_goals is not None and self.theta_goals is not None:
-                break
+        # ensuring goals are stored
+        rospy.sleep(1)
 
         # control loop
-
+        if self.x_goals['image'] is not None: self.draw(self.x_goals, self.y_goals, self.theta_goals, 'image')
+        if self.x_goals['function'] is not None: self.draw(self.x_goals, self.y_goals, self.theta_goals, 'function')
         # move to homepose(for original homepose)
-        self.moveHolaTo(250, 250, 0)
-        self.stop()
-        rospy.sleep(0.1)
+        # self.moveHolaTo(250, 250, 0)
+        # self.stop()
+        # rospy.sleep(0.1)
+
+        # move back to homepose(for original configuration)
+        # self.moveHolaTo(250, 250, 0)
+        # self.stop()
+        # rospy.sleep(0.1)
+
+    def draw(self, x_goals, y_goals, theta_goals, mode):
 
         # iterate through each contour to draw the image/function
-        for i in range(len(self.x_goals)):
+        for i in range(len(x_goals[mode])):
             # iterate through each point in the contour
-            for j in range(len(self.x_goals[i])):
+            for j in range(len(x_goals[mode][i])):
 
                 # move hola to the desired point
-                self.moveHolaTo(self.x_goals[i][j], self.y_goals[i][j], self.theta_goals[i][j])
+                self.moveHolaTo(x_goals[mode][i][j], y_goals[mode][i][j], theta_goals[mode][i][j])
 
                 # if first point of trajectory, pen down
                 if j==0: 
                     self.stop()
-                    self.pen_status_pub.publish(1)
-                    self.pen_status=1
+                    self.pen_status_pub[mode].publish(1)
+                    self.pen_status[mode]=1
                     rospy.sleep(0.5)
 
                 # if last point of trajectory, pen up
-                if j==len(self.x_goals[i])-1: 
+                if j==len(self.x_goals[mode][i])-1: 
                     self.stop()
-                    self.pen_status_pub.publish(0)
-                    self.pen_status=0
+                    self.pen_status_pub[mode].publish(0)
+                    self.pen_status[mode]=0
                     rospy.sleep(0.5)
-
-        # move back to homepose(for original configuration)
-        self.moveHolaTo(250, 250, 0)
-        self.stop()
-        rospy.sleep(0.1)
 
     '''
     Function Name: goal_callback
@@ -113,13 +118,21 @@ class goToPose:
         into 3 different lists (self.x_goals, self.y_goals, self.theta_goals).
     Example call: self.goal_callback(data)
     '''
-    def goal_callback(self, data):
+    def img_goal_callback(self, data):
         contours = ast.literal_eval(data.data)
 
         # stores goals
-        self.x_goals=contours[0]
-        self.y_goals=contours[1]
-        self.theta_goals=contours[2]
+        self.x_goals['image']=contours[0]
+        self.y_goals['image']=contours[1]
+        self.theta_goals['image']=contours[2]
+
+    def func_goal_callback(self, data):
+        contours = ast.literal_eval(data.data)
+
+        # stores goals
+        self.x_goals['function']=contours[0]
+        self.y_goals['function']=contours[1]
+        self.theta_goals['function']=contours[2]
 
     '''
     Function Name: goal_callback
@@ -131,9 +144,9 @@ class goToPose:
     Example call: self.odom_callback(data)
     '''       
     def odom_callback(self, msg):
-        self.x=msg.x 
-        self.y=msg.y
-        self.theta=msg.theta
+        self.odom['x']=msg.x 
+        self.odom['y']=msg.y
+        self.odom['theta']=msg.theta
 
     '''
     Function Name: task_stat_callback
@@ -146,6 +159,12 @@ class goToPose:
     ''' 
     def task_stat_callback(self, data):
         self.task_status=data.data
+
+    def cam_check_callback(self, data):
+        self.image_availability=data.data
+		# if no image is getting published
+        if self.image_availability == -1:
+            rospy.loginfo("Feed unavailable")
 
     '''
     Function Name: stop
@@ -173,24 +192,24 @@ class goToPose:
     Example call: self.moveHolaTo(x_goal, y_goal, theta_goal)
     ''' 
     def moveHolaTo(self, x, y, theta):
-        self.x_goal=x
-        self.y_goal=y
-        self.theta_goal=theta
+        self.goal['x']=x
+        self.goal['y']=y
+        self.goal['theta']=theta
 
-        print("Goal: [{}, {}, {}]".format(self.x_goal, self.y_goal, self.theta_goal))
+        print("Goal: [{}, {}, {}]".format(x, y, theta))
 
         # move the bot untill it reaches the goal point
         while True:
-            # if aruco marker isn't detected or task status = 1, stop the bot
-            if (self.x==-1 and self.y==-1 and self.theta==4) or self.task_status==1 :
+            # if aruco marker isn't detected or task has ended or camera feed is unavailable, stop the bot
+            if (self.odom['x']==-1 and self.odom['y']==-1 and self.odom['theta']==4) or self.task_status==1 or self.image_availability==-1:
                 self.stop()
             else:
                 # error calculation
-                angle_error, error_x, error_y = calculateError([self.x_goal, self.y_goal, self.theta_goal], [self.x, self.y, self.theta])
+                angle_error, error_x, error_y = calculateError(self.goal, self.odom)
 
                 # velocity calculation
-                v_x, v_y=getLinearVel(error_x,  error_y, self.params_linear, self.linear_thresh, self.intg, self.last_error)
-                ang_vel=getAngVel(angle_error, self.params_ang, self.ang_thresh, self.intg, self.last_error)
+                v_x, v_y=getLinearVel(error_x,  error_y, self.params, self.thresh, self.intg, self.last_error)
+                ang_vel=getAngVel(angle_error, self.params, self.thresh, self.intg, self.last_error)
 
                 # setup the msg for publishing
                 self.twist_msg.linear.x=v_x 
@@ -202,8 +221,8 @@ class goToPose:
                 self.rate.sleep()
 
                 #stop when reached target pose
-                if abs(angle_error)<=self.ang_thresh and abs(error_x)<=self.linear_thresh and abs(error_y)<=self.linear_thresh:
-                    print("reached goal pose: [{}, {}, {}]".format(self.x,  self.y, round(self.theta, 3)))
+                if abs(angle_error)<=self.thresh['angular'] and abs(error_x)<=self.thresh['linear'] and abs(error_y)<=self.thresh['linear']:
+                    print("reached goal pose: [{}, {}, {}]".format(self.odom['x'],  self.odom['y'], round(self.odom['theta'], 3)))
                     break
 
 if __name__=='__main__':

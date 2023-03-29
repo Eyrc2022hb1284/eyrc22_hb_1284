@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 '''
 Team Id : HB1284
 Author List : Debrup
@@ -10,6 +12,19 @@ Global Variables: None
 
 import cv2
 import math
+import rospy
+import ast
+
+def verifyArgs(args):
+	w, h = ast.literal_eval(args.frameSize)
+	a, b = ast.literal_eval(args.frameStart)
+
+	if w>500 or h>500:
+		rospy.loginfo("Given Frame size exceeds arena size")
+		rospy.signal_shutdown("Frame size exceeded")
+	if (a+w > 500) or (b+h > 500):
+		rospy.loginfo("frame will exceed the arena incase of given frame start coordinate")
+		rospy.signal_shutdown("Not enough space!")
 
 '''
 Function Name: detect_aruco
@@ -113,12 +128,13 @@ Logic:
 	This function takes in the image name (including the extension) and generates the cv2 frame using imread function
 Example call: frame = getImage('smile.jpg)
 '''
-def getImage(name):
+def getImage(name, frame_size):
 	path='/home/kratos/cyborg_ws/src/eyrc_2022_hb/eyrc_hb_feed/src/taskImages/{}'.format(name)
+	w, h = frame_size
 	# read image
 	image=cv2.imread(path)        
 	# resize
-	image=resize(image, w=500, h=500)
+	image=resize(image, w=w, h=h)
 
 	return image
 
@@ -135,13 +151,13 @@ Logic:
 Example call: contours = getContoursMsg(mode=0, image=frame, density=6) ------> image mode
 						 getContourMsg(mode=0, points=1000) ---------------> function mode
 '''
-def getContourMsg(mode=None, image=None, density=3, points=500):
+def getContourMsg(mode=None, image=None, density=3, points=500, frame_size=(500, 500), frame_start=(0, 0)):
 	if mode == 0:
 		print("...Image mode selected...")
-		contours=getContoursImg(image, density)
+		contours=getContoursImg(image, density, frame_size, frame_start)
 	if mode == 1:
 		print("..Function mode selected...")
-		contours=getContoursFunc(points)
+		contours=getContoursFunc(points, frame_size, frame_start)
 
 	return contours
 
@@ -155,12 +171,12 @@ Logic:
 	'density'. Finally, a list containing goals along x, y axes and target orientation is returned.
 Example call: contours = getContoursImg(frame, density)
 '''
-def getContoursImg(image, density):
+def getContoursImg(image, density, frame_size, frame_start):
 	# Convert to grayscale
 	gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
+	
 	# Threshold the image
-	thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV)[1]
+	thresh = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY_INV)[1]
 
 	# Find the contours in the image
 	contours, hierarchy = cv2.findContours(thresh, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
@@ -168,8 +184,13 @@ def getContoursImg(image, density):
 	waypoints=[]
 	# Extract the contours who dont have a parent
 	for i in range(len(contours)):
-		if i==0 or i==1 or i==2 or i==3 or i==4 or i==11: 
-			waypoints.append(contours[i].tolist())
+		# if i==0 or i==1 or i==2 or i==3 or i==4 or i==11: 
+		waypoints.append(contours[i].tolist())
+
+	# print(waypoints)
+
+	# shifts image to the given frame
+	waypoints = shiftImage(waypoints, frame_start, frame_size)
 
 	# add theta to each pixel to convert it to a waypoint
 	waypoints=addTheta(waypoints)
@@ -181,6 +202,18 @@ def getContoursImg(image, density):
 	
 	return [x_goals, y_goals, theta_goals]
 
+# shifts image to the frame within which it is supposed to be drawn
+def shiftImage(contours, frame_start, frame_size):
+	a, b = frame_start
+	w, h = frame_size
+
+	for contour in contours:
+		for i in range(len(contour)):
+			contour[i][0][0]+=a
+			contour[i][0][1]+=b
+	
+	return contours
+
 '''
 Function Name: getContoursFunc
 Input: points(number of points the time range is going to be divided into)
@@ -189,8 +222,10 @@ Logic:
 	This function takes in the number of points, gets goal for each time instance and appends it in a list to generate contour data
 Example call: [x_g, y_g, theta_g] = getContoursFunc(points)
 '''
-def getContoursFunc(points):
-	t=[-1, 4*math.pi]
+def getContoursFunc(points, frame_size, frame_start):
+	t=[0, 2*math.pi]
+	a, b = frame_start
+	w, h = frame_size
 
 	# lower limit of time
 	t_low=t[0]
@@ -205,13 +240,13 @@ def getContoursFunc(points):
 		# get current pixel
 		x_goal, y_goal, theta_goal=getCurrGoal(curr_t)
 
-		x_goal=int(x_goal)+250 #linear transformation
-		y_goal=500-(int(y_goal)+250) #linear transformation followed by conversion to openCV corrdinate
+		x_goal=int(x_goal+a+(w/2)) #linear transformation
+		y_goal=h-int(y_goal+b+(h/2)) #linear transformation followed by conversion to openCV corrdinate
 
 		contours.append([[x_goal, y_goal, theta_goal]])
 
-	# split into multiple waypoints if they are too distant
 	contours=getMultipleContours(contours, 500)
+
 	# extract x and y goals into 2 separate lists
 	x_goals, y_goals, theta_goals=splitContours(contours)
 
@@ -227,25 +262,9 @@ Logic:
 Example call: x, y, theta = getCurrGoal(t)
 '''
 def getCurrGoal(curr_t):
-	# calculate polar coordinates
-	r_t = 60*math.ceil((4*math.pi-curr_t)/math.pi)*math.sin(2*curr_t)
-	a_t = curr_t + math.pi/2
-
-	x=0
-	y=0
-	theta=0
-
-	if curr_t < 0: 
-		x=0
-		y=200*curr_t
-		theta = curr_t*math.pi/2
-	else: 
-		x=r_t*math.cos(a_t)
-		y=r_t*math.sin(a_t)
-		theta = (2*curr_t) % (2*math.pi)
-		
-	if theta > math.pi:
-		theta = theta - 2*math.pi
+	x = 100*math.cos(curr_t)
+	y = 100*math.sin(curr_t)
+	theta = 0
 		
 	return x, y, theta
 

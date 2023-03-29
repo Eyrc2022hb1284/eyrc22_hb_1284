@@ -29,11 +29,12 @@ class Transmitter:
         self.rw_rpm=0
 
         # pen up angle
-        self.servo_angle = 10
+        self.servo_angle = {'image': 4, 'function': 4}
 
         # subscribers
         self.sub = rospy.Subscriber('hb/cmd_vel', Twist, self.callback)
-        rospy.Subscriber('/penStatus', Int32, self.callback_servo)
+        self.pen_status_sub = {'image': rospy.Subscriber('/img_penStatus', Int32, self.img_pen_callback),
+                               'function': rospy.Subscriber('/func_penStatus', Int32, self.func_pen_callback)}
 
         # socket object
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -41,7 +42,7 @@ class Transmitter:
         while not rospy.is_shutdown():
             
             # make the message
-            msg = "{},{},{},{}\r".format(self.fw_rpm,self.rw_rpm,self.lw_rpm,self.servo_angle)
+            msg = "{},{},{},{},{}\r".format(self.fw_rpm,self.rw_rpm,self.lw_rpm,self.servo_angle['image'],self.servo_angle['function'])
             # transmit data
             self.sock.sendto(str.encode(msg), (args.ip, args.port))
             print("Data sent: {}".format(msg))
@@ -69,13 +70,21 @@ class Transmitter:
         This function gets the penstatus data, and stores servo angle in the servo angle variable accordingly
     Example call: self.callback_servo(data)
     '''
-    def callback_servo(self, msg):
+    def img_pen_callback(self, msg):
         # pen down
         if msg.data == 1:
-            self.servo_angle=4
+            self.servo_angle['image']=4
         # pen up
         else:
-            self.servo_angle=10
+            self.servo_angle['image']=10
+
+    def func_pen_callback(self, msg):
+        # pen down
+        if msg.data == 1:
+            self.servo_angle['function']=4
+        # pen up
+        else:
+            self.servo_angle['function']=10
 
 if __name__ == '__main__':
 

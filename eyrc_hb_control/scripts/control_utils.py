@@ -22,8 +22,8 @@ Example call: angle_error, error_x, error_y = calculateError(goal, pose)
 '''
 def calculateError(goal, pose):
     # unpacking data into variables
-    x_goal, y_goal, theta_goal=goal
-    x, y, theta=pose
+    x_goal, y_goal, theta_goal=goal['x'], goal['y'], goal['theta']
+    x, y, theta=pose['x'], pose['y'], pose['theta']
 
     # error calculation
     angle_error=theta_goal-theta
@@ -61,20 +61,17 @@ Logic:
     the PID parameters(PID params(Kp, ki, kd), intg and last_errors) into the PID controller(Only P being used here as of now).
 Example call: ang_vel = getAngVel(angle_error, params_ang, ang_thresh, intg, last_error)
 '''
-def getAngVel(error, const, ang_thresh, intg_params, last_error_params):
+def getAngVel(error, const, thresh, intg_params, last_error_params):
     ang_vel=0
 
     # if angular error more than the threshold then computer velocity
-    if abs(error) > ang_thresh:
+    if abs(error) > thresh['angular']:
         if error > 3.14:
-            ang_vel = pid((error-6.28), const, intg_params['w'], last_error_params['w']) # from intg_params and last_error_params choose the intg and last_param 
+            ang_vel = pid((error-6.28), const['angular'], intg_params['w'], last_error_params['w']) # from intg_params and last_error_params choose the intg and last_param 
         elif error < -3.14:                                                              # meant for angular pid(w)
-            ang_vel = pid((error+6.28), const, intg_params['w'], last_error_params['w'])
+            ang_vel = pid((error+6.28), const['angular'], intg_params['w'], last_error_params['w'])
         else:
-            ang_vel = pid(error, const, intg_params['w'], last_error_params['w'], )
-
-        # if ang_vel < 0 : ang_vel = -4
-        # if ang_vel > 0 : ang_vel = 4
+            ang_vel = pid(error, const['angular'], intg_params['w'], last_error_params['w'], )
 
     return ang_vel
 
@@ -87,13 +84,13 @@ Logic:
     parameters specific to linear PID to compute the velocity
 Example call: v_x, v_y = getLinearVel(error_x,  error_y, params_linear, linear_thresh, intg, last_error)
 '''
-def getLinearVel(error_x,  error_y, const, linear_thresh, intg_params, last_error_params):
+def getLinearVel(error_x,  error_y, const, thresh, intg_params, last_error_params):
     v_x=0
     v_y=0
     
-    if abs(error_x)>linear_thresh or abs(error_y)>linear_thresh:
-        v_x=pid(error_x, const, intg_params['vx'], last_error_params['vx'])
-        v_y=pid(error_y, const, intg_params['vy'], last_error_params['vy'])
+    if abs(error_x)>thresh['linear'] or abs(error_y)>thresh['linear']:
+        v_x=pid(error_x, const['linear'], intg_params['vx'], last_error_params['vx'])
+        v_y=pid(error_y, const['linear'], intg_params['vy'], last_error_params['vy'])
 
     return v_x, v_y
 

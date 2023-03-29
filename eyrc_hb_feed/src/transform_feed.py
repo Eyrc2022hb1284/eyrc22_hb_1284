@@ -92,7 +92,14 @@ class PerspectiveTransform:
                 self.pt_pub.publish(self.transfrom_img)
                 
                 rospy.loginfo("Publishing feed...")
-
+    '''
+    Function Name: cam_check_callback
+    Input: Integer
+    Output: loginfo and signal shutown if required 
+    Logic: 
+        This function takes in the incoming integer from the topic hb/image_raw_check to check whether the integrated camera system is running properly or not.
+    Example call: self.cam_check_callback(data)
+    '''
     def cam_check_callback(self, data):
         self.image_availability=data.data
 

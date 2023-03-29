@@ -98,6 +98,14 @@ class Odom:
 		# recieves the feed
 		self.frame = self.bridge.imgmsg_to_cv2(data, "mono8")
 
+	'''
+    Function Name: cam_check_callback
+    Input: Integer
+    Output: loginfo and signal shutown if required 
+    Logic: 
+        This function takes in the incoming integer from the topic hb/image_raw_check to check whether the integrated camera system is running properly or not.
+    Example call: self.cam_check_callback(data)
+    '''
 	def cam_check_callback(self, data):
 		self.image_availability=data.data
 		# if no image is getting published

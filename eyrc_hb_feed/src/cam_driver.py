@@ -34,7 +34,6 @@ class CamDriver:
             _, frame=vid.read()
 
             if frame is None:
-                print("aya")
                 rospy.loginfo("Cannot access camera")
                 # indicates that feed isnt getting published
                 self.pub_check.publish(-1)

@@ -15,6 +15,16 @@ import math
 import rospy
 import ast
 
+
+
+'''
+Function Name: verifyArgs
+Input: arguments(manual input)
+Output: loginfo , shutdown request 
+Logic: 
+	This function performs checking the arguments whether it is under arena size.
+Example call: verifyArgs(parsed arguments)
+'''
 def verifyArgs(args):
 	w, h = ast.literal_eval(args.frameSize)
 	a, b = ast.literal_eval(args.frameStart)
@@ -163,11 +173,11 @@ def getContourMsg(mode=None, image=None, density=3, points=500, frame_size=(500,
 
 '''
 Function Name: getContoursImg
-Input: image(frame that's to be drawn), density(resolution of each contour)
+Input: image(frame that's to be drawn), density(resolution of each contour) , frame_size(the size of frame) , frame_start(upper left corner)
 Output: list containing goals along x, y axes and target orientation.
 Logic: 
 	This function takes in the image to be drawn alongwith the density of the contour. It then converts the image into a thresholded image(incase it isn't)
-	this is followed by contouring and inclusion of theta goals in each pixel coordinate extracted. The final set of contours are diluted depending on the value of
+	this is followed by contouring and inclusion of theta goals in each pixel coordinate extracted. Meanwhile points are shifted according to the frame size and frame starting point,  The final set of contours are diluted depending on the value of
 	'density'. Finally, a list containing goals along x, y axes and target orientation is returned.
 Example call: contours = getContoursImg(frame, density)
 '''
@@ -190,7 +200,7 @@ def getContoursImg(image, density, frame_size, frame_start):
 	# print(waypoints)
 
 	# shifts image to the given frame
-	waypoints = shiftImage(waypoints, frame_start, frame_size)
+	waypoints = shiftImage(waypoints, frame_start)
 
 	# add theta to each pixel to convert it to a waypoint
 	waypoints=addTheta(waypoints)
@@ -203,9 +213,8 @@ def getContoursImg(image, density, frame_size, frame_start):
 	return [x_goals, y_goals, theta_goals]
 
 # shifts image to the frame within which it is supposed to be drawn
-def shiftImage(contours, frame_start, frame_size):
+def shiftImage(contours, frame_start):
 	a, b = frame_start
-	w, h = frame_size
 
 	for contour in contours:
 		for i in range(len(contour)):
@@ -216,10 +225,10 @@ def shiftImage(contours, frame_start, frame_size):
 
 '''
 Function Name: getContoursFunc
-Input: points(number of points the time range is going to be divided into)
+Input: points(number of points the time range is going to be divided into) , frame_size , frame_start
 Output: list containing goals along x, y axes and target orientation.
 Logic: 
-	This function takes in the number of points, gets goal for each time instance and appends it in a list to generate contour data
+	This function takes in the number of points, gets goal for each time instance , transform the points to the local particular frame and appends it in a list to generate contour data
 Example call: [x_g, y_g, theta_g] = getContoursFunc(points)
 '''
 def getContoursFunc(points, frame_size, frame_start):

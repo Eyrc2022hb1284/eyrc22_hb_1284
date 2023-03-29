@@ -8,7 +8,7 @@ Purpose: This script takes the bot around a finite set of goals
 import rospy
 from geometry_msgs.msg import Twist, Pose2D
 import math
-from control_utils import *
+from eyrc_hb_control.scripts.control_utils import *
 
 class goToPose:
     def __init__(self):

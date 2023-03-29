@@ -14,10 +14,10 @@ import math
 
 '''
 Function Name: calculateError
-Input: goal([x_goal, y_goal, theta_goal]), pose([x, y, theta])
+Input: goal(dictionary storing x, y, theta goals), pose(dictionary storing the current pose/odometry)
 Output: angular and linear error(along x and y axes)
 Logic: 
-    This function computes the intantaneous angular and linear error wrt the current goal using certain translational and rotational transformations.
+    This function computes the instantaneous angular and linear error wrt the current goal using translational and rotational transformations.
 Example call: angle_error, error_x, error_y = calculateError(goal, pose)
 '''
 def calculateError(goal, pose):
@@ -54,12 +54,12 @@ def pid(error, const, intg, last_error):
 
 '''
 Function Name: getAngVel
-Input: angular_error, PID params, angular threshold, intg and last_error params
+Input: angular_error, PID params, threshold dictionary, intg and last_error params
 Output: angular velocity
 Logic: 
     This function computes the intantaneous angular velocity of the robot by passing the instantaneous angular error alongwith
     the PID parameters(PID params(Kp, ki, kd), intg and last_errors) into the PID controller(Only P being used here as of now).
-Example call: ang_vel = getAngVel(angle_error, params_ang, ang_thresh, intg, last_error)
+Example call: ang_vel = getAngVel(angle_error, params, thresh, intg, last_error)
 '''
 def getAngVel(error, const, thresh, intg_params, last_error_params):
     ang_vel=0
@@ -68,7 +68,7 @@ def getAngVel(error, const, thresh, intg_params, last_error_params):
     if abs(error) > thresh['angular']:
         if error > 3.14:
             ang_vel = pid((error-6.28), const['angular'], intg_params['w'], last_error_params['w']) # from intg_params and last_error_params choose the intg and last_param 
-        elif error < -3.14:                                                              # meant for angular pid(w)
+        elif error < -3.14:                                                                         # meant for angular pid(w)
             ang_vel = pid((error+6.28), const['angular'], intg_params['w'], last_error_params['w'])
         else:
             ang_vel = pid(error, const['angular'], intg_params['w'], last_error_params['w'], )
@@ -77,12 +77,12 @@ def getAngVel(error, const, thresh, intg_params, last_error_params):
 
 '''
 Function Name: getLinearVel
-Input: error along x axis, error along y axis, PID params, linear threshold, intg, last_error params
-Output: linear velocuty(along x and y axes)
+Input: error along x axis, error along y axis, PID params, threshold dictionary, intg, last_error params
+Output: linear velocity(along x and y axes)
 Logic: 
     This function computes the intantaneous linear velocity along x and y axes using the PID controller. The PID controller takes in the linear error and
     parameters specific to linear PID to compute the velocity
-Example call: v_x, v_y = getLinearVel(error_x,  error_y, params_linear, linear_thresh, intg, last_error)
+Example call: v_x, v_y = getLinearVel(error_x,  error_y, params, thresh, intg, last_error)
 '''
 def getLinearVel(error_x,  error_y, const, thresh, intg_params, last_error_params):
     v_x=0

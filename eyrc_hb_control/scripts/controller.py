@@ -24,7 +24,7 @@ class goToPose:
 
         # task/pen status storing variables
         self.task_status=1
-        self.pen_status={'image': 0, 'function': 0}
+        self.pen_status={'image': 0, 'function': 0} #This is meant for visualisation purposes ONLY
 
         # variable to store data regarding feed availability(1->available, -1->Unavailable)
         self.image_availability = 1
@@ -62,7 +62,7 @@ class goToPose:
         # PID params
         self.params={'linear':{'Kp':0.0487, 'Ki':0, 'Kd':0},
                      'angular':{'Kp':5, 'Ki':0, 'Kd':0}}
-        
+        # variables for storing integral and last error values
         self.intg={'vx':0, 'vy':0, 'w':0}
         self.last_error={'vx':0, 'vy':0, 'w':0}
 
@@ -85,6 +85,14 @@ class goToPose:
         # self.stop()
         # rospy.sleep(0.1)
 
+    '''
+    Function Name: draw
+    Input: x goal dictionary(x_goals), y goal dictionary(y_goals), theta goal dictionary(theta_goals), mode
+    Output: No output
+    Logic: 
+        This function draws image/plots function according to the mode selected.
+    Example call: self.draw(x_goals, y_goals, theta_goals, mode)
+    '''
     def draw(self, x_goals, y_goals, theta_goals, mode):
 
         # iterate through each contour to draw the image/function
@@ -110,13 +118,13 @@ class goToPose:
                     rospy.sleep(0.5)
 
     '''
-    Function Name: goal_callback
+    Function Name: img_goal_callback
     Input: contour data in the following form-[xListFinal, yListFinal, thetaListFinal]
     Output: No output
     Logic: 
-        This function takes in the incoming contour message from the /contours topic, converts it to a list and finally stores the 3 different goal lists
-        into 3 different lists (self.x_goals, self.y_goals, self.theta_goals).
-    Example call: self.goal_callback(data)
+        This function takes in the incoming contour message from the /contours_0 topic, converts it to a list and finally stores the 3 different goal lists
+        into 3 different dictionaries that stores goals for drawing image and plotting the function (self.x_goals, self.y_goals, self.theta_goals).
+    Example call: self.img_goal_callback(data)
     '''
     def img_goal_callback(self, data):
         contours = ast.literal_eval(data.data)
@@ -126,6 +134,15 @@ class goToPose:
         self.y_goals['image']=contours[1]
         self.theta_goals['image']=contours[2]
 
+    '''
+    Function Name: func_goal_callback
+    Input: contour data in the following form-[xListFinal, yListFinal, thetaListFinal]
+    Output: No output
+    Logic: 
+        This function takes in the incoming contour message from the /contours_1 topic, converts it to a list and finally stores the 3 different goal lists
+        into 3 different dictionaries that stores goals for drawing image and plotting the function (self.x_goals, self.y_goals, self.theta_goals).
+    Example call: self.func_goal_callback(data)
+    '''
     def func_goal_callback(self, data):
         contours = ast.literal_eval(data.data)
 
@@ -135,12 +152,12 @@ class goToPose:
         self.theta_goals['function']=contours[2]
 
     '''
-    Function Name: goal_callback
+    Function Name: odom_callback
     Input: odometry data(x, y, theta)
     Output: No output
     Logic: 
         This function takes in the incoming odometry message from the /detected_aruco topic and stores it 
-        into 3 different variables (self.x, self.y, self.theta).
+        into the odom dictionary.
     Example call: self.odom_callback(data)
     '''       
     def odom_callback(self, msg):
@@ -160,8 +177,18 @@ class goToPose:
     def task_stat_callback(self, data):
         self.task_status=data.data
 
+    '''
+    Function Name: cam_check_callback
+    Input: Int data
+    Output: No output
+    Logic: 
+        This function takes in the incoming int data that signifies if camera feed is available or not and stops the 
+        robot incase camera is unavailable
+    Example call: self.cam_check_callback(data)
+    '''    
     def cam_check_callback(self, data):
         self.image_availability=data.data
+
 		# if no image is getting published
         if self.image_availability == -1:
             rospy.loginfo("Feed unavailable")

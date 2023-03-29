@@ -63,12 +63,12 @@ class Transmitter:
         self.fw_rpm, self.lw_rpm, self.rw_rpm=Vel2RPM(fw_vel, lw_vel, rw_vel) 
 
     '''
-    Function Name: callback_servo
+    Function Name: img_pen_callback
     Input: Int data
     Output: None
     Logic: 
-        This function gets the penstatus data, and stores servo angle in the servo angle variable accordingly
-    Example call: self.callback_servo(data)
+        This function gets the status of the pen responsible for drawing the image, and stores servo angle to be given to the image servo in the variable accordingly
+    Example call: self.img_pen_callback(data)
     '''
     def img_pen_callback(self, msg):
         # pen down
@@ -78,6 +78,14 @@ class Transmitter:
         else:
             self.servo_angle['image']=10
 
+    '''
+    Function Name: func_pen_callback
+    Input: Int data
+    Output: None
+    Logic: 
+        This function gets the status of the pen responsible for plotting the function, and stores servo angle to be given to the function servo in the variable accordingly
+    Example call: self.func_pen_callback(data)
+    '''
     def func_pen_callback(self, msg):
         # pen down
         if msg.data == 1:
@@ -93,9 +101,7 @@ if __name__ == '__main__':
     parser.add_argument('ip', nargs='?', type=str, help='ip address')
     parser.add_argument('-p', '--port', type=int, default=4210, help='port, default: 4210')
     args = parser.parse_args()
-
-    rospy.loginfo("host: %s, port: %s", args.ip, args.port)
-
+    
     tm = Transmitter(args)
     
     try:

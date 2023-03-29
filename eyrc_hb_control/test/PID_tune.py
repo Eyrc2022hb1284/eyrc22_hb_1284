@@ -30,10 +30,14 @@ class goToPose:
         # task status variable
         self.task_status=1
 
+        # variable to store data regarding feed availability(1->available, -1->Unavailable)
+        self.image_availability = 1
+
         # aruco_data params
-        self.x=0
-        self.y=0
-        self.theta=0
+        self.odom={'x': 0, 'y': 0, 'theta': 0}
+
+        # current goal
+        self.goal={'x': None, 'y': None, 'theta': None}
 
         # goals
         self.x_goals=[150, 350, 250, 300, 275, 287, 281, 284]
@@ -41,16 +45,14 @@ class goToPose:
         self.theta_goals=[0, 3.142, 1.571, 2.356, 1.963, 2.159, 2.061, 2.110]
 
         # tolerance/threshold params
-        self.linear_thresh=args.linearThresh
-        self.ang_thresh=args.angularThresh    
+        self.thresh={'linear': args.linearThresh, 'angular': args.angularThresh}    
 
         # variable that stores the server object handling dynamic reconfiguration
         self.srv = None 
 
         # initial PID parameters
-        self.params_linear={'Kp':0.0487, 'Ki':0, 'Kd':0}
-        self.params_ang={'Kp':5, 'Ki':0, 'Kd':0} 
-
+        self.params={'linear':{'Kp':0.0487, 'Ki':0, 'Kd':0},
+                     'angular':{'Kp':5, 'Ki':0, 'Kd':0}}
         # variables for storing integral and last error values 
         self.intg={'vx':0, 'vy':0, 'w':0}
         self.last_error={'vx':0, 'vy':0, 'w':0}
@@ -69,6 +71,7 @@ class goToPose:
         # subscriber/publisher
         self.odom_sub=rospy.Subscriber('/detected_aruco', aruco_data, self.odom_callback)
         self.task_sub=rospy.Subscriber('/taskStatus', Int32, self.task_stat_callback)
+        self.feed_check=rospy.Subscriber('hb/image_raw_check', Int32, self.cam_check_callback)
 
         # publish error
         self.x_error_pub=rospy.Publisher('hb/error_x', Float64, queue_size=10)
@@ -89,37 +92,55 @@ class goToPose:
                 if args.mode=='l': self.moveHolaTo(self.x_goals[i], self.y_goals[i], 0)
                 else: self.moveHolaTo(250, 250, self.theta_goals[i])
 
+    '''
+    Function Name: lin_dyn_callback
+    Input: current configuration(config), level
+    Output: updated configuration
+    Logic: 
+        This function takes in the incoming config and level data, updates the linear PID parameters 
+        and returns the updated configuration
+    Example call: self.lin_dyn_callback(config, level)
+    '''      
     def lin_dyn_callback(self, config, level):
        
         # update parameters
-        self.params_linear['Kp'] = config['Kp_l']
-        self.params_linear['Ki'] = config['Ki_l']
-        self.params_linear['Kd'] = config['Kd_l']
-
-        return config
-
-    def ang_dyn_callback(self, config, level):
-       
-        # update parameters
-        self.params_ang['Kp'] = config['Kp_a']
-        self.params_ang['Ki'] = config['Ki_a']
-        self.params_ang['Kd'] = config['Kd_a']
+        self.params['linear']['Kp'] = config['Kp_l']
+        self.params['linear']['Ki'] = config['Ki_l']
+        self.params['linear']['Kd'] = config['Kd_l']
 
         return config
 
     '''
-    Function Name: goal_callback
+    Function Name: ang_dyn_callback
+    Input: current configuration(config), level
+    Output: updated configuration
+    Logic: 
+        This function takes in the incoming config and level data, updates the angular PID parameters 
+        and returns the updated configuration
+    Example call: self.ang_dyn_callback(config, level)
+    '''     
+    def ang_dyn_callback(self, config, level):
+       
+        # update parameters
+        self.params['angular']['Kp'] = config['Kp_a']
+        self.params['angular']['Ki'] = config['Ki_a']
+        self.params['angular']['Kd'] = config['Kd_a']
+
+        return config
+
+    '''
+    Function Name: odom_callback
     Input: odometry data(x, y, theta)
     Output: No output
     Logic: 
         This function takes in the incoming odometry message from the /detected_aruco topic and stores it 
-        into 3 different variables (self.x, self.y, self.theta).
+        into the odom dictionary.
     Example call: self.odom_callback(data)
     '''       
     def odom_callback(self, msg):
-        self.x=msg.x 
-        self.y=msg.y
-        self.theta=msg.theta
+        self.odom['x']=msg.x 
+        self.odom['y']=msg.y
+        self.odom['theta']=msg.theta
 
     '''
     Function Name: task_stat_callback
@@ -132,6 +153,23 @@ class goToPose:
     ''' 
     def task_stat_callback(self, data):
         self.task_status=data.data
+
+    '''
+    Function Name: cam_check_callback
+    Input: Int data
+    Output: No output
+    Logic: 
+        This function takes in the incoming int data that signifies if camera feed is available or not and stops the 
+        robot incase camera is unavailable
+    Example call: self.cam_check_callback(data)
+    '''    
+    def cam_check_callback(self, data):
+        self.image_availability=data.data
+
+		# if no image is getting published
+        if self.image_availability == -1:
+            rospy.loginfo("Feed unavailable")
+
 
     '''
     Function Name: stop
@@ -158,22 +196,25 @@ class goToPose:
         the functions that contribute to it(error calculation and getting velocity from them using P controller)
     Example call: self.moveHolaTo(x_goal, y_goal, theta_goal)
     ''' 
-    def moveHolaTo(self, x_goal, y_goal, theta_goal):
-        
-        print("Goal: [{}, {}, {}]".format(x_goal, y_goal, theta_goal))
+    def moveHolaTo(self, x, y, theta):
+        self.goal['x']=x
+        self.goal['y']=y
+        self.goal['theta']=theta
+
+        print("Goal: [{}, {}, {}]".format(x, y, theta))
 
         # move the bot untill it reaches the goal point
         while True:
             # if aruco marker isn't detected or task status = 1, stop the bot
-            if (self.x==-1 and self.y==-1 and self.theta==4) or self.task_status==1 :
+            if (self.odom['x']==-1 and self.odom['y']==-1 and self.odom['theta']==4) or self.task_status==1 or self.image_availability==-1:
                 self.stop()
             else:
                 # error calculation
-                angle_error, error_x, error_y = calculateError([x_goal, y_goal, theta_goal], [self.x, self.y, self.theta])
+                angle_error, error_x, error_y = calculateError(self.goal, self.odom)
 
                 # velocity calculation
-                v_x, v_y=getLinearVel(error_x,  error_y, self.params_linear, self.linear_thresh, self.intg, self.last_error)
-                ang_vel=getAngVel(angle_error, self.params_ang, self.ang_thresh, self.intg, self.last_error)
+                v_x, v_y=getLinearVel(error_x,  error_y, self.params, self.thresh, self.intg, self.last_error)
+                ang_vel=getAngVel(angle_error, self.params, self.thresh, self.intg, self.last_error)
 
                 # setup the msg for publishing
                 self.twist_msg.linear.x=v_x 
@@ -190,7 +231,7 @@ class goToPose:
                 self.rate.sleep()
 
                 #stop when reached target pose
-                if abs(angle_error)<=self.ang_thresh and abs(error_x)<=self.linear_thresh and abs(error_y)<=self.linear_thresh:
+                if abs(angle_error)<=self.thresh['angular'] and abs(error_x)<=self.thresh['linear'] and abs(error_y)<=self.thresh['linear']:
                     print("reached goal pose: [{}, {}, {}]".format(self.x,  self.y, round(self.theta, 3)))
                     # self.stop()
                     break

@@ -1,4 +1,4 @@
-# e-yantra'22 
+# E-yantra'22 Rank-1 
 ## Theme-HolA Bot 
 Code base for the Holonomic Art bot
 

@@ -2,7 +2,7 @@
 
 '''
 Team Id : HB1284
-Author List : Debrup
+Author List : Sachin, Debrup
 Filename: feed_utils.py
 Theme: HoLA Bot
 Functions: detect_aruco(), extract_arena_corners(), perspectiveTransform(), getPose(), resize(), getImage(), getContourMsg(), getContoursImg(), getContoursFunc()
